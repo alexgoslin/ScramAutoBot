@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Site Analysis &amp; Handoff</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Site Handoff</div>
+    <button id="openOptions" class="ghost small" title="Settings">⚙ Settings</button>
+  </header>
+
+  <div id="apiKeyBanner" class="banner warn hidden">
+    No Anthropic API key set. <a href="#" id="bannerOptions">Add one in Settings</a>.
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="capture" class="active">Capture</button>
+    <button role="tab" data-tab="files">Files</button>
+    <button role="tab" data-tab="handoff">Handoff</button>
+    <button role="tab" data-tab="build">Build</button>
+  </nav>
+
+  <main>
+    <!-- CAPTURE -->
+    <section id="tab-capture" class="panel active">
+      <div class="card">
+        <div class="label">Current page</div>
+        <div id="currentTitle" class="page-title">—</div>
+        <div id="currentUrl" class="muted url">—</div>
+        <button id="captureBtn" class="primary block">Capture this page</button>
+        <div id="captureStatus" class="status"></div>
+      </div>
+
+      <h3 class="section-title">Captured for <span id="currentSite">this site</span></h3>
+      <ul id="siteSpecList" class="list"></ul>
+    </section>
+
+    <!-- FILES -->
+    <section id="tab-files" class="panel">
+      <div id="filesList"></div>
+    </section>
+
+    <!-- HANDOFF -->
+    <section id="tab-handoff" class="panel">
+      <div class="card">
+        <label class="label" for="handoffSite">Site</label>
+        <select id="handoffSite"></select>
+        <button id="generateBtn" class="primary block">Generate Handoff</button>
+        <div id="handoffStatus" class="status"></div>
+      </div>
+      <ul id="handoffList" class="list"></ul>
+    </section>
+
+    <!-- BUILD -->
+    <section id="tab-build" class="panel">
+      <div class="card">
+        <label class="label" for="buildSite">Site</label>
+        <select id="buildSite"></select>
+        <button id="buildBtn" class="primary block">Build in Scram</button>
+        <div class="row">
+          <button id="resetBuildBtn" class="ghost small">Reset progress</button>
+          <button id="stopBuildBtn" class="ghost small">Stop build overlay</button>
+        </div>
+        <div id="buildStatus" class="status"></div>
+        <p class="muted small-text">
+          “Build in Scram” opens the Scram dashboard, tries to start a new project and pastes Step 0 into the AI chat.
+          When Scram finishes a step, mark it done here (or in the overlay on the Scram tab) and the next step is sent.
+        </p>
+      </div>
+      <ul id="buildList" class="list"></ul>
+    </section>
+  </main>
+
+  <!-- Reader modal -->
+  <div id="reader" class="reader hidden" role="dialog" aria-modal="true">
+    <div class="reader-head">
+      <button id="readerBack" class="ghost small">← Back</button>
+      <div id="readerTitle" class="reader-title"></div>
+      <button id="readerCopy" class="small">Copy</button>
+    </div>
+    <div id="readerMeta" class="muted reader-meta"></div>
+    <pre id="readerBody" class="reader-body"></pre>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="sidepanel.js" type="module"></script>
+</body>
+</html>

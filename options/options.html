@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Site Handoff — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main>
+    <h1>Site Analysis &amp; Handoff — Settings</h1>
+
+    <section>
+      <h2>Anthropic API</h2>
+      <label for="apiKey">API key</label>
+      <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+      <p class="hint">Stored only in this browser's <code>chrome.storage.local</code> and sent only to <code>api.anthropic.com</code>.</p>
+
+      <label for="model">Model</label>
+      <input id="model" type="text" list="modelList" spellcheck="false" />
+      <datalist id="modelList">
+        <option value="claude-sonnet-5"></option>
+        <option value="claude-opus-5-5"></option>
+        <option value="claude-haiku-4-5-20251001"></option>
+      </datalist>
+
+      <div class="grid">
+        <div>
+          <label for="specMaxTokens">Spec max tokens</label>
+          <input id="specMaxTokens" type="number" min="1000" step="1000" />
+        </div>
+        <div>
+          <label for="handoffMaxTokens">Handoff max tokens</label>
+          <input id="handoffMaxTokens" type="number" min="1000" step="1000" />
+        </div>
+      </div>
+
+      <label class="check"><input id="autoSubmit" type="checkbox" /> Auto-submit steps in the Scram chat after pasting (otherwise you press send)</label>
+
+      <div class="row">
+        <button id="testKey" type="button">Test API key</button>
+        <span id="testResult" class="hint"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Prompts</h2>
+      <p class="hint">
+        Leave blank to use the bundled prompts in <code>prompts/</code>. Paste your own
+        <code>site-screen-spec-extractor.md</code> and <code>scram-phased-handoff-splitter.md</code> here to override them.
+      </p>
+      <label for="specPrompt">Site Screen Spec Extractor (Job 1 system prompt)</label>
+      <textarea id="specPrompt" rows="10" spellcheck="false"></textarea>
+      <button type="button" class="link" data-load="specPrompt">Load bundled default into editor</button>
+
+      <label for="handoffPrompt">Phased Build Handoff Splitter (Job 2 system prompt)</label>
+      <textarea id="handoffPrompt" rows="10" spellcheck="false"></textarea>
+      <button type="button" class="link" data-load="handoffPrompt">Load bundled default into editor</button>
+    </section>
+
+    <div class="savebar">
+      <button id="save" class="primary" type="button">Save settings</button>
+      <span id="saved" class="hint"></span>
+    </div>
+
+    <section class="danger">
+      <h2>Data</h2>
+      <div class="row">
+        <button id="exportData" type="button">Export all data (JSON)</button>
+        <button id="clearData" type="button" class="danger-btn">Delete all captured data</button>
+      </div>
+    </section>
+  </main>
+  <script src="options.js" type="module"></script>
+</body>
+</html>

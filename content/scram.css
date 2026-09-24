@@ -1,0 +1,51 @@
+#scram-autobot-overlay {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  width: 300px;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #111827;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+#scram-autobot-overlay .sab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #4f46e5;
+  color: #fff;
+}
+#scram-autobot-overlay .sab-title { font-weight: 600; }
+#scram-autobot-overlay .sab-icon {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+#scram-autobot-overlay.sab-min .sab-body { display: none; }
+#scram-autobot-overlay .sab-body { padding: 10px 12px 12px; display: grid; gap: 8px; }
+#scram-autobot-overlay .sab-step small { color: #6b7280; }
+#scram-autobot-overlay .sab-status { color: #374151; min-height: 1em; }
+#scram-autobot-overlay .sab-status[data-kind="warn"] { color: #b45309; }
+#scram-autobot-overlay .sab-status[data-kind="error"] { color: #b91c1c; }
+#scram-autobot-overlay .sab-status[data-kind="ok"] { color: #047857; }
+#scram-autobot-overlay .sab-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+#scram-autobot-overlay button:not(.sab-icon) {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #111827;
+  cursor: pointer;
+}
+#scram-autobot-overlay button:disabled { opacity: 0.5; cursor: default; }
+#scram-autobot-overlay .sab-primary { background: #4f46e5 !important; color: #fff !important; border-color: #4f46e5 !important; }
+#scram-autobot-overlay .sab-done { background: #059669 !important; color: #fff !important; border-color: #059669 !important; width: 100%; }
