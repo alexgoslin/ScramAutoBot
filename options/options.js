@@ -29,15 +29,31 @@ function readSettings() {
   };
 }
 
-$("#save").addEventListener("click", async () => {
+async function save() {
+  // Old errors (e.g. "No API key set") would otherwise stay visible in the side panel.
+  const { jobs = {} } = await chrome.storage.local.get("jobs");
+  const running = Object.fromEntries(Object.entries(jobs).filter(([, j]) => j.status === "running"));
   await chrome.storage.local.set({
+    jobs: running,
     apiKey: $("#apiKey").value.trim(),
     settings: readSettings(),
     promptOverrides: { specExtractor: $("#specPrompt").value, handoffSplitter: $("#handoffPrompt").value },
   });
   $("#saved").textContent = "Saved ✓";
-  setTimeout(() => ($("#saved").textContent = ""), 2000);
-});
+  clearTimeout(save._t);
+  save._t = setTimeout(() => ($("#saved").textContent = ""), 2000);
+}
+
+$("#save").addEventListener("click", save);
+
+// Save automatically as settings change, so nothing is lost if the Save button is missed.
+let autoSaveTimer = null;
+document.querySelectorAll("input, textarea").forEach((el) =>
+  el.addEventListener(el.type === "checkbox" ? "change" : "input", () => {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(save, 400);
+  })
+);
 
 $("#testKey").addEventListener("click", async () => {
   const out = $("#testResult");
@@ -50,7 +66,8 @@ $("#testKey").addEventListener("click", async () => {
       userContent: "ping",
       maxTokens: 10,
     });
-    out.textContent = `Works ✓ (model replied “${text.trim()}”)`;
+    await save();
+    out.textContent = `Works ✓ (model replied “${text.trim()}”) — key saved`;
   } catch (e) {
     out.textContent = e.message;
   }

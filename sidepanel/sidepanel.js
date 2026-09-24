@@ -176,7 +176,7 @@ function renderCapture() {
   const btn = $("#captureBtn");
   btn.disabled = !siteUrl || job?.status === "running";
   btn.textContent = job?.status === "running" ? "Analysing with Claude…" : "Capture this page";
-  setStatus($("#captureStatus"), siteUrl ? job : { status: "error", message: "Only http(s) pages can be captured." });
+  setStatus($("#captureStatus"), siteUrl ? job : { status: "error", message: "This tab can't be captured. Switch to a website tab (http/https) and the button will turn on." });
 
   const list = $("#siteSpecList");
   const specs = data.specFiles.filter((s) => s.siteUrl === siteUrl).sort((a, b) => b.capturedAt.localeCompare(a.capturedAt));
