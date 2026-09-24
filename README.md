@@ -12,15 +12,14 @@ A Manifest V3 Chrome side-panel extension that:
 2. Right-click the extension icon → **Options**. Paste your Anthropic API key, then click **Test API key** and **Save settings**.
 3. Click the extension icon to open the side panel. It stays open while you browse.
 
-## Your prompts
+## Prompts
 
-`prompts/site-screen-spec-extractor.md` and `prompts/scram-phased-handoff-splitter.md` are working **placeholders**. You can replace them in either of these ways:
+`prompts/site-screen-spec-extractor.md` and `prompts/scram-phased-handoff-splitter.md` are the system prompts, word for word. To try a different version without editing files, paste it into the matching box on the Options page. Options-page prompts take precedence.
 
-- overwrite those two files with your own and reload the extension, or
-- paste them into the two prompt boxes on the Options page. Options-page prompts take precedence.
+Both prompts were written for a different setup, so the extension adds a short note to the **user message** of each request. The prompts themselves stay unchanged:
 
-The handoff request always appends instructions to return JSON in this shape:
-`{ manifest, combinedDoc, steps: [{ stepNumber, title, content }] }`. Your splitter prompt doesn't need to describe the format.
+- **Capture:** the extractor assumes Claude in Chrome with browsing, screenshots and devtools. The note says this is a single-page capture. It tells Claude to skip the discovery loop and screenshots, to treat the computed-style data as observed, to treat backend workflows as inferred (there's no network trace), and to replace personal data with placeholders.
+- **Handoff:** the splitter expects one merged `screen-spec.md`. The note tells Claude to merge the per-page specs first, then follow the procedure. It also asks for JSON: `{ manifest, combinedDoc, steps: [{ stepNumber, title, content }] }`. Claude leaves `combinedDoc` empty, and the extension builds it from the manifest plus the step files, so output tokens go to the steps. Steps are renumbered 0…n-1 in Claude's order, so an arc like "3a/3b" still makes a clean queue.
 
 ## Side panel
 
@@ -54,7 +53,14 @@ Scram has no public API, so its UI is detected with heuristics (button text, tex
 
 ## Notes
 
-- All Claude calls run in the service worker (`background.js`). Page text is collected with `chrome.scripting.executeScript` (`document.body.innerText`, `document.title`, `location.href`, plus a light outline of headings, buttons, links and forms) and cut off at 120k characters.
+- All Claude calls run in the service worker (`background.js`) and stream their responses, so long generations don't time out. The spinner shows how many characters have arrived.
+- Page data is collected with `chrome.scripting.executeScript`:
+  - `document.body.innerText` (cut off at 120k characters), `document.title` and `location.href`
+  - a nested layout outline with real pixel sizes and flex, grid, scroll and z-index info
+  - computed design tokens: text and background colours as hex, fonts by role, radii, shadows, spacing
+  - every visible control, link, form and input, with its state (disabled, selected, expanded and so on)
+  - localStorage, sessionStorage and cookie **key names**, but never their values
+  - third-party script hosts
 - **Model:** the default is `claude-sonnet-5`, and you can change it in Options. The model in the original brief, `claude-3-5-sonnet-20241022`, is retired and the API no longer accepts it.
-- Max tokens are 8000 for specs and 16000 for handoffs by default, and both can be changed in Options.
+- Max tokens are 8000 for specs and 16000 for handoffs by default, and both can be changed in Options. Your splitter repeats the full context block in every step file, so a site with many screens can go past 16000. When that happens you get an error; raise the handoff limit in Options (for example to 32000–64000) and generate again. A spec cut off at 8000 tokens is saved with a warning note at the end.
 - Captured page content is sent to the Anthropic API. Don't capture pages whose data you aren't allowed to share.
