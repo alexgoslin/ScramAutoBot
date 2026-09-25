@@ -76,6 +76,7 @@
       expanded: el.getAttribute("aria-expanded") ?? undefined,
       haspopup: el.getAttribute("aria-haspopup") ?? undefined,
       selected: el.getAttribute("aria-selected") === "true" || el.getAttribute("aria-current") ? true : undefined,
+      pressed: el.getAttribute("aria-pressed") ?? (el.getAttribute("aria-checked") ?? undefined),
       inLayer: el.closest(LAYERS) ? true : undefined,
       submits: (el.tagName === "BUTTON" && el.form && el.type === "submit") || (el.tagName === "INPUT" && el.type === "submit") || undefined,
       editable: el.isContentEditable || ["INPUT", "TEXTAREA"].includes(el.tagName) || undefined,
@@ -125,6 +126,12 @@
       }
     }
     return null;
+  }
+
+  // Current state of one element (label/pressed/expanded), e.g. to detect a toggle.
+  function describeTarget(target) {
+    const el = find(target);
+    return el ? describe(el) : null;
   }
 
   function click(target) {
@@ -350,7 +357,7 @@
   }
 
   window.__sabDom = {
-    snapshot, click, typeText, pressKey, scroll, bodyText, signature, extract,
+    snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating,
     ping: () => true,
   };

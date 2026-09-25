@@ -119,6 +119,20 @@ select {
 .empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
 
 .site-group { margin-bottom: 14px; }
+
+.row.between { justify-content: space-between; align-items: center; }
+.card.autopilot { border-color: var(--accent); }
+.ap-phase { font-weight: 600; }
+.ap-message { font-size: 12px; word-break: break-word; }
+.badge.running { background: var(--accent); color: var(--accent-text); }
+.badge.paused, .badge.error { background: var(--warn-bg); color: var(--warn); }
+.badge.done { background: var(--ok); color: #fff; }
+.ap-log {
+  margin: 0; padding: 6px 6px 6px 26px; max-height: 260px; overflow: auto;
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--code-bg); border-radius: 6px;
+}
+.ap-log li { margin-bottom: 2px; word-break: break-word; }
 .site-group h4 { margin: 0 0 6px; font-size: 12px; display: flex; justify-content: space-between; }
 
 .banner { padding: 8px 12px; font-size: 12px; }

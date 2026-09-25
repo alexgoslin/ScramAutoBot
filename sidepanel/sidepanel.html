@@ -26,6 +26,30 @@
   <main>
     <!-- CAPTURE -->
     <section id="tab-capture" class="panel active">
+      <div class="card autopilot">
+        <div class="row between">
+          <div class="label">Autopilot</div>
+          <span id="apBadge" class="badge">idle</span>
+        </div>
+        <p class="muted small-text" id="apIntro">
+          Explores this site on its own (clicking, typing and recording how everything works), writes every spec,
+          generates the build steps, then builds the clone in Scram — answering its bot and approving its plans.
+        </p>
+        <button id="apStart" class="primary block">🚀 Autopilot this site</button>
+        <div id="apStatus" class="hidden">
+          <div id="apPhase" class="ap-phase"></div>
+          <div id="apMessage" class="ap-message"></div>
+          <div id="apCounters" class="muted small-text"></div>
+          <div class="row">
+            <button id="apStop" class="small">Stop</button>
+            <button id="apResume" class="small primary">Resume</button>
+            <button id="apReset" class="small ghost">Clear</button>
+            <button id="apLogToggle" class="small ghost">Show log</button>
+          </div>
+          <ol id="apLog" class="ap-log hidden"></ol>
+        </div>
+      </div>
+
       <div class="card">
         <div class="label">Current page</div>
         <div id="currentTitle" class="page-title">—</div>

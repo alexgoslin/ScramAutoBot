@@ -1,6 +1,7 @@
 import * as store from "./lib/storage.js";
 import { generateSpec, generateHandoff } from "./lib/jobs.js";
 import { dom } from "./lib/dom.js";
+import * as autopilot from "./lib/autopilot.js";
 
 const SCRAM_URL = "https://dashboard.buildwithscram.com/";
 
@@ -11,6 +12,12 @@ chrome.runtime.onStartup.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
   // Any job marked "running" from a previous browser session is dead.
   store.set("jobs", {});
+  autopilot.tick();
+});
+
+// Keeps a long Autopilot run going: resumes the loop if Chrome restarted the worker.
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "autopilot-keepalive") autopilot.tick();
 });
 
 // ---------------------------------------------------------------------------
@@ -159,6 +166,12 @@ const handlers = {
   resetBuild: ({ siteUrl }) => resetBuild(siteUrl),
   stopBuild: () => store.set("activeBuild", null),
   clearJob: ({ key }) => store.setJob(key, null),
+
+  // Autopilot
+  autopilotStart: ({ tabId }) => autopilot.start({ tabId }),
+  autopilotStop: () => autopilot.stop(),
+  autopilotResume: () => autopilot.resume(),
+  autopilotReset: () => autopilot.reset(),
 
   // From the Scram content script.
   "scram:getState": () => buildState(),

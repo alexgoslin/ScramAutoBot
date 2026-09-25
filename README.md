@@ -6,6 +6,39 @@ A Manifest V3 Chrome side-panel extension that:
 2. **Generates a handoff**: it joins all specs for a site and sends them to Claude with the *Phased Build Handoff Splitter* prompt. It saves the result as a manifest, a combined document, and ordered step files (Step 0 Setup, Step 1 Auth, Step 2+ screens).
 3. **Builds in Scram**: it opens `https://dashboard.buildwithscram.com/`, tries to start a new project, and pastes the steps into the Scram AI chat one at a time, waiting for you to confirm each one.
 
+It can do all three steps on its own with **Autopilot** (see below), or you can drive each step yourself.
+
+## Autopilot
+
+Open the site you want to clone (logged in, if it has accounts), open the side panel and click **🚀 Autopilot [site]**. After one confirmation it runs with no further clicks:
+
+1. **Explore:** opens a dedicated tab and crawls up to 20 screens (you can change this). On each screen it:
+   - records the page's API traffic via `chrome.debugger` (Chrome shows a "debugging this browser" bar while this runs),
+   - scrolls to trigger lazy loading, takes a screenshot, and reads every control on the page,
+   - asks a cheap navigator model which controls, text boxes and links to try,
+   - clicks each control and records what opened or changed, how the control itself changed, and which requests fired. Toggles (like, follow, bookmark, switches, checkboxes) are clicked again to undo them,
+   - types a test string into search boxes and composers to see suggestions, counters, validation and buttons becoming enabled. It never submits.
+
+   It then writes the Screen Spec with the network trace and interaction log as observed evidence, and queues other *kinds* of screens: one profile, one post, one settings page, not 500 of each.
+2. **Handoff:** generates the step files, with your Scram guide included as reference and an original app name.
+3. **Scram setup:** opens Scram and waits for you if you need to log in. A small Claude-driven UI agent then opens or creates the project, opens the AI chat, and sets the bot to Sonnet with low thinking if there's a selector for it.
+4. **Build:** sends each step file with "plan first, wait for approval", then waits until Scram's bot goes quiet. A supervisor reads the bot's new output and decides what to do next:
+   - approves the plan (clicks Approve or replies),
+   - answers the bot's questions,
+   - pushes it to test every checklist item in Run mode,
+   - tells it to continue or switch approach when it stalls,
+   - marks the step done once testing is explicitly confirmed, then sends the next step.
+
+Autopilot **pauses and notifies you** when it needs a person: a Scram login it waits for, credentials or payments, publishing to Live, or a step that goes past 30 rounds. It also stops on an error. Click **Resume** to continue or **Stop** to end it. Progress is saved, so it survives Chrome restarting the extension's background worker.
+
+**Exploration mode** (Settings):
+- **Full interaction** (default): clicks everything as described above.
+- **Safe:** read-only. Only menus, tabs, modals, links and search.
+
+In both modes a hard block-list is never clicked, whatever the model says: log out or switch account, delete or deactivate, buy/pay/upgrade/subscribe, and post/reply/send/publish/invite/report/message. Text typed into boxes is never submitted.
+
+It uses your Anthropic API credits (roughly two calls per explored screen, plus one per Scram chat round) and your Scram credits. Token totals are shown in the Autopilot card.
+
 ## Install (unpacked)
 
 1. `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select this folder.

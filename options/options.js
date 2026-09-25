@@ -12,6 +12,8 @@ async function load() {
   $("#specMaxTokens").value = settings.specMaxTokens;
   $("#handoffMaxTokens").value = settings.handoffMaxTokens;
   $("#autoSubmit").checked = settings.autoSubmit;
+  for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds", "maxRoundsPerStep"]) $(`#${k}`).value = settings[k];
+  for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild"]) $(`#${k}`).checked = settings[k];
   $("#specPrompt").value = promptOverrides.specExtractor || "";
   $("#handoffPrompt").value = promptOverrides.handoffSplitter || "";
 }
@@ -26,6 +28,17 @@ function readSettings() {
     specMaxTokens: int("#specMaxTokens", DEFAULT_SETTINGS.specMaxTokens),
     handoffMaxTokens: int("#handoffMaxTokens", DEFAULT_SETTINGS.handoffMaxTokens),
     autoSubmit: $("#autoSubmit").checked,
+    explorationMode: $("#explorationMode").value === "safe" ? "safe" : "full",
+    maxPages: int("#maxPages", DEFAULT_SETTINGS.maxPages),
+    maxInteractionsPerPage: int("#maxInteractionsPerPage", DEFAULT_SETTINGS.maxInteractionsPerPage),
+    actionDelayMs: Math.max(300, int("#actionDelayMs", DEFAULT_SETTINGS.actionDelayMs)),
+    explorerModel: $("#explorerModel").value.trim() || DEFAULT_SETTINGS.explorerModel,
+    recordNetwork: $("#recordNetwork").checked,
+    recordResponseBodies: $("#recordResponseBodies").checked,
+    screenshots: $("#screenshots").checked,
+    autopilotBuild: $("#autopilotBuild").checked,
+    scramIdleSeconds: int("#scramIdleSeconds", DEFAULT_SETTINGS.scramIdleSeconds),
+    maxRoundsPerStep: int("#maxRoundsPerStep", DEFAULT_SETTINGS.maxRoundsPerStep),
   };
 }
 
@@ -48,8 +61,8 @@ $("#save").addEventListener("click", save);
 
 // Save automatically as settings change, so nothing is lost if the Save button is missed.
 let autoSaveTimer = null;
-document.querySelectorAll("input, textarea").forEach((el) =>
-  el.addEventListener(el.type === "checkbox" ? "change" : "input", () => {
+document.querySelectorAll("input, textarea, select").forEach((el) =>
+  el.addEventListener(el.type === "checkbox" || el.tagName === "SELECT" ? "change" : "input", () => {
     clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(save, 400);
   })

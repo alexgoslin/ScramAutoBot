@@ -43,6 +43,50 @@
     </section>
 
     <section>
+      <h2>Autopilot</h2>
+      <label for="explorationMode">Exploration mode</label>
+      <select id="explorationMode">
+        <option value="full">Full interaction — click everything (likes, follows, toggles… undone afterwards), type into text boxes</option>
+        <option value="safe">Safe — read-only: menus, tabs, modals, links and search only</option>
+      </select>
+      <p class="hint">In both modes Autopilot never logs out, deletes or deactivates, pays or upgrades, or posts/sends/invites/reports — and never submits what it types.</p>
+
+      <div class="grid">
+        <div>
+          <label for="maxPages">Max screens to explore</label>
+          <input id="maxPages" type="number" min="1" max="100" />
+        </div>
+        <div>
+          <label for="maxInteractionsPerPage">Max controls tried per screen</label>
+          <input id="maxInteractionsPerPage" type="number" min="0" max="50" />
+        </div>
+        <div>
+          <label for="actionDelayMs">Delay between actions (ms)</label>
+          <input id="actionDelayMs" type="number" min="300" step="100" />
+        </div>
+        <div>
+          <label for="explorerModel">Navigator model (cheap)</label>
+          <input id="explorerModel" type="text" list="modelList" spellcheck="false" />
+        </div>
+      </div>
+      <label class="check"><input id="recordNetwork" type="checkbox" /> Record network requests (Chrome shows a “debugging this browser” bar while exploring)</label>
+      <label class="check"><input id="recordResponseBodies" type="checkbox" /> Include response samples (first 1,500 chars) — shows data shapes, may include your account's data</label>
+      <label class="check"><input id="screenshots" type="checkbox" /> Send a screenshot of each screen to Claude</label>
+      <label class="check"><input id="autopilotBuild" type="checkbox" /> After generating the steps, build the app in Scram automatically</label>
+
+      <div class="grid">
+        <div>
+          <label for="scramIdleSeconds">Scram bot “finished” after quiet for (s)</label>
+          <input id="scramIdleSeconds" type="number" min="5" />
+        </div>
+        <div>
+          <label for="maxRoundsPerStep">Max chat rounds per step before pausing</label>
+          <input id="maxRoundsPerStep" type="number" min="3" />
+        </div>
+      </div>
+    </section>
+
+    <section>
       <h2>Prompts</h2>
       <p class="hint">
         Leave blank to use the bundled prompts in <code>prompts/</code>. Paste your own

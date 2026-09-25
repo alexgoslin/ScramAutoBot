@@ -114,7 +114,7 @@ $("#bannerOptions").addEventListener("click", openOptions);
 async function loadData() {
   data = {
     ...data,
-    ...(await chrome.storage.local.get(["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild"])),
+    ...(await chrome.storage.local.get(["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage"])),
   };
   data.sites ||= [];
   data.specFiles ||= [];
@@ -158,6 +158,7 @@ function manageKeepAlive() {
 
 function render() {
   $("#apiKeyBanner").classList.toggle("hidden", !!data.apiKey);
+  renderAutopilot();
   renderCapture();
   renderFiles();
   renderSiteSelects();
@@ -359,6 +360,76 @@ function renderBuild() {
 }
 
 // ---------------------------------------------------------------------------- actions
+
+// ---------------------------------------------------------------------------- autopilot
+
+const PHASES = {
+  explore: "1/4 · Exploring the site",
+  handoff: "2/4 · Generating build steps",
+  "scram-setup": "3/4 · Setting up Scram",
+  build: "4/4 · Building in Scram",
+  finished: "Finished",
+};
+
+function renderAutopilot() {
+  const ap = data.autopilot;
+  const siteUrl = siteUrlOf(currentTab?.url || "");
+  const active = ap && ["running", "paused"].includes(ap.status);
+  const badge = $("#apBadge");
+  badge.className = `badge ${ap?.status || ""}`;
+  badge.textContent = ap?.status || "idle";
+
+  $("#apStart").disabled = active || !siteUrl || !data.apiKey;
+  $("#apStart").textContent = siteUrl ? `🚀 Autopilot ${host(siteUrl)}` : "🚀 Open a website to Autopilot it";
+  $("#apStart").classList.toggle("hidden", !!active);
+  $("#apIntro").classList.toggle("hidden", !!ap);
+  $("#apStatus").classList.toggle("hidden", !ap);
+  if (!ap) return;
+
+  $("#apPhase").textContent = `${host(ap.siteUrl)} — ${PHASES[ap.phase] || ap.phase}`;
+  $("#apMessage").textContent = ap.status === "paused" || ap.status === "error" ? `⚠️ ${ap.pauseReason || ap.message}` : ap.message || "";
+  const ex = ap.explore || {};
+  const b = ap.build || {};
+  const mins = Math.round((Date.now() - ap.startedAt) / 60000);
+  const usage = data.usage ? ` · ${(data.usage.input / 1000).toFixed(0)}k in / ${(data.usage.output / 1000).toFixed(0)}k out tokens (all-time)` : "";
+  const parts = [`${(ex.pages || []).length} screens explored, ${(ex.queue || []).length} queued`];
+  if (b.totalSteps) parts.push(`step ${Math.min(b.step + 1, b.totalSteps)} of ${b.totalSteps}${b.rounds ? ` (round ${b.rounds})` : ""}`);
+  $("#apCounters").textContent = `${parts.join(" · ")} · ${mins} min${usage}`;
+
+  $("#apStop").classList.toggle("hidden", !active);
+  $("#apResume").classList.toggle("hidden", !["paused", "stopped", "error"].includes(ap.status));
+  $("#apReset").classList.toggle("hidden", !!active);
+
+  const log = $("#apLog");
+  log.replaceChildren(...(ap.log || []).slice(-60).map((l) => el("li", {}, `${new Date(l.t).toLocaleTimeString()} ${l.msg}`)));
+  if (!log.classList.contains("hidden")) log.scrollTop = log.scrollHeight;
+}
+
+$("#apStart").addEventListener("click", async () => {
+  if (!currentTab) return;
+  const ok = confirm(
+    `Autopilot will now, without asking again:\n\n` +
+      `• explore ${host(siteUrlOf(currentTab.url))} in a new tab, clicking controls (including likes, follows, toggles — undone afterwards) and typing into text boxes without submitting. It never logs out, deletes, pays, or posts/sends content. Change this under Settings → Exploration mode.\n` +
+      `• write a spec per screen, generate the build steps,\n` +
+      `• open Scram, create the project, and drive its AI bot through every step — answering questions and approving plans.\n\n` +
+      `It uses your Anthropic API credits and your Scram credits. Leave its tabs alone while it works; you can Stop at any time.`
+  );
+  if (!ok) return;
+  try {
+    await send("autopilotStart", { tabId: currentTab.id });
+  } catch (e) {
+    toast(e.message);
+  }
+});
+$("#apStop").addEventListener("click", () => send("autopilotStop").catch((e) => toast(e.message)));
+$("#apResume").addEventListener("click", () => send("autopilotResume").catch((e) => toast(e.message)));
+$("#apReset").addEventListener("click", () => send("autopilotReset").catch((e) => toast(e.message)));
+$("#apLogToggle").addEventListener("click", () => {
+  const log = $("#apLog");
+  log.classList.toggle("hidden");
+  $("#apLogToggle").textContent = log.classList.contains("hidden") ? "Show log" : "Hide log";
+  log.scrollTop = log.scrollHeight;
+});
 
 $("#captureBtn").addEventListener("click", async () => {
   if (!currentTab) return;

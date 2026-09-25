@@ -10,7 +10,7 @@ h2 { font-size: 15px; margin-top: 0; }
 section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: grid; gap: 8px; }
 label { font-weight: 600; font-size: 13px; }
 label.check { font-weight: 400; display: flex; gap: 8px; align-items: center; }
-input[type=text], input[type=password], input[type=number], textarea {
+input[type=text], input[type=password], input[type=number], textarea, select {
   width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
 textarea { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
