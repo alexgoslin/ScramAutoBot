@@ -168,7 +168,7 @@ const handlers = {
   clearJob: ({ key }) => store.setJob(key, null),
 
   // Autopilot
-  autopilotStart: ({ tabId }) => autopilot.start({ tabId }),
+  autopilotStart: ({ tabId, instructions }) => autopilot.start({ tabId, instructions }),
   autopilotStop: () => autopilot.stop(),
   autopilotResume: () => autopilot.resume(),
   autopilotReset: () => autopilot.reset(),

@@ -35,10 +35,13 @@
           Explores this site on its own (clicking, typing and recording how everything works), writes every spec,
           generates the build steps, then builds the clone in Scram — answering its bot and approving its plans.
         </p>
+        <label class="label" for="apInstructions" id="apInstructionsLabel">Instructions for this run (optional)</label>
+        <textarea id="apInstructions" rows="3" placeholder="e.g. Ignore the Grok part and anything to do with Premium. Focus on the timeline, profiles and DMs."></textarea>
         <button id="apStart" class="primary block">🚀 Autopilot this site</button>
         <div id="apStatus" class="hidden">
           <div id="apPhase" class="ap-phase"></div>
           <div id="apMessage" class="ap-message"></div>
+          <div id="apRunInstructions" class="muted small-text"></div>
           <div id="apCounters" class="muted small-text"></div>
           <div class="row">
             <button id="apStop" class="small">Stop</button>

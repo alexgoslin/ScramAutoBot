@@ -382,7 +382,10 @@ function renderAutopilot() {
   $("#apStart").disabled = active || !siteUrl || !data.apiKey;
   $("#apStart").textContent = siteUrl ? `🚀 Autopilot ${host(siteUrl)}` : "🚀 Open a website to Autopilot it";
   $("#apStart").classList.toggle("hidden", !!active);
+  $("#apInstructions").classList.toggle("hidden", !!active);
+  $("#apInstructionsLabel").classList.toggle("hidden", !!active);
   $("#apIntro").classList.toggle("hidden", !!ap);
+  $("#apRunInstructions").textContent = ap?.instructions ? `Your instructions: ${ap.instructions}` : "";
   $("#apStatus").classList.toggle("hidden", !ap);
   if (!ap) return;
 
@@ -419,11 +422,17 @@ $("#apStart").addEventListener("click", async () => {
   );
   if (!ok) return;
   try {
-    await send("autopilotStart", { tabId: currentTab.id });
+    await send("autopilotStart", { tabId: currentTab.id, instructions: $("#apInstructions").value.trim() });
   } catch (e) {
     toast(e.message);
   }
 });
+// Keep the instructions draft between panel openings.
+chrome.storage.local.get("autopilotInstructions").then(({ autopilotInstructions }) => {
+  if (autopilotInstructions && !$("#apInstructions").value) $("#apInstructions").value = autopilotInstructions;
+});
+$("#apInstructions").addEventListener("input", () => chrome.storage.local.set({ autopilotInstructions: $("#apInstructions").value }));
+
 $("#apStop").addEventListener("click", () => send("autopilotStop").catch((e) => toast(e.message)));
 $("#apResume").addEventListener("click", () => send("autopilotResume").catch((e) => toast(e.message)));
 $("#apReset").addEventListener("click", () => send("autopilotReset").catch((e) => toast(e.message)));

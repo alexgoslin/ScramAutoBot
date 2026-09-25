@@ -122,6 +122,10 @@ select {
 
 .row.between { justify-content: space-between; align-items: center; }
 .card.autopilot { border-color: var(--accent); }
+.card.autopilot textarea {
+  width: 100%; font: inherit; font-size: 12px; padding: 6px 8px; border-radius: 8px; resize: vertical;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
 .ap-phase { font-weight: 600; }
 .ap-message { font-size: 12px; word-break: break-word; }
 .badge.running { background: var(--accent); color: var(--accent-text); }

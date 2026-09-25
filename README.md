@@ -10,7 +10,17 @@ It can do all three steps on its own with **Autopilot** (see below), or you can 
 
 ## Autopilot
 
-Open the site you want to clone (logged in, if it has accounts), open the side panel and click **🚀 Autopilot [site]**. After one confirmation it runs with no further clicks:
+Open the site you want to clone (logged in, if it has accounts), open the side panel and click **🚀 Autopilot [site]**. After one confirmation it runs with no further clicks.
+
+Before starting, you can type **Instructions for this run**, e.g. "Ignore the Grok part and anything Premium; focus on the timeline, profiles and DMs". Every stage follows them:
+- **Crawl:** the navigator skips matching controls and links, and turns your instructions into URL fragments (e.g. `/i/grok`) that are hard-blocked for the rest of the crawl.
+- **Specs:** excluded areas are left out.
+- **Handoff:** no steps are created for excluded areas.
+- **Scram:** the supervisor respects your instructions when answering Scram's bot.
+
+The draft is remembered between panel openings.
+
+The stages:
 
 1. **Explore:** opens a dedicated tab and crawls up to 20 screens (you can change this). On each screen it:
    - records the page's API traffic via `chrome.debugger` (Chrome shows a "debugging this browser" bar while this runs),
