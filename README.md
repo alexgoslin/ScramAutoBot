@@ -41,6 +41,12 @@ The stages:
 
 Autopilot **pauses and notifies you** when it needs a person: a Scram login it waits for, credentials or payments, publishing to Live, or a step that goes past 30 rounds. It also stops on an error. Click **Resume** to continue or **Stop** to end it. Progress is saved, so it survives Chrome restarting the extension's background worker.
 
+**Product focus** (Settings, on by default): the clone covers the *product* (posting, feeds, replies and threads, reposts, media, profiles, messages, notifications, search, product settings), not the company around it. Four things enforce this:
+- URLs whose first path segment is corporate or boilerplate are never queued. That covers about, careers, press, ads, business, help, developer docs, blog, privacy, terms, cookies, legal, premium, pricing and downloads. Product pages like `/settings/privacy` stay reachable.
+- Links to other sites and subdomains (e.g. `business.x.com`) are never clicked.
+- The navigator is told to prioritise product features.
+- Specs give business areas one line, and the handoff creates no steps for them.
+
 **Exploration mode** (Settings):
 - **Full interaction** (default): clicks everything as described above.
 - **Safe:** read-only. Only menus, tabs, modals, links and search.

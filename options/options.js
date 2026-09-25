@@ -13,7 +13,7 @@ async function load() {
   $("#handoffMaxTokens").value = settings.handoffMaxTokens;
   $("#autoSubmit").checked = settings.autoSubmit;
   for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds", "maxRoundsPerStep"]) $(`#${k}`).value = settings[k];
-  for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild"]) $(`#${k}`).checked = settings[k];
+  for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus"]) $(`#${k}`).checked = settings[k];
   $("#specPrompt").value = promptOverrides.specExtractor || "";
   $("#handoffPrompt").value = promptOverrides.handoffSplitter || "";
 }
@@ -29,6 +29,7 @@ function readSettings() {
     handoffMaxTokens: int("#handoffMaxTokens", DEFAULT_SETTINGS.handoffMaxTokens),
     autoSubmit: $("#autoSubmit").checked,
     explorationMode: $("#explorationMode").value === "safe" ? "safe" : "full",
+    productFocus: $("#productFocus").checked,
     maxPages: int("#maxPages", DEFAULT_SETTINGS.maxPages),
     maxInteractionsPerPage: int("#maxInteractionsPerPage", DEFAULT_SETTINGS.maxInteractionsPerPage),
     actionDelayMs: Math.max(300, int("#actionDelayMs", DEFAULT_SETTINGS.actionDelayMs)),
