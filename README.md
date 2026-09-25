@@ -37,7 +37,13 @@ Autopilot **pauses and notifies you** when it needs a person: a Scram login it w
 
 In both modes a hard block-list is never clicked, whatever the model says: log out or switch account, delete or deactivate, buy/pay/upgrade/subscribe, and post/reply/send/publish/invite/report/message. Text typed into boxes is never submitted.
 
-It uses your Anthropic API credits (roughly two calls per explored screen, plus one per Scram chat round) and your Scram credits. Token totals are shown in the Autopilot card.
+It uses your Anthropic API credits (roughly two calls per explored screen, plus one per Scram chat round) and your Scram credits. The Autopilot card shows this run's calls and tokens. The all-time total, with a reset button, is under Settings → Data.
+
+**Keeping token use down:**
+- **Specs:** they are written tersely. After a site's first screen, the site-wide sections (design tokens, backend, rationale, testing mandate) only record what's new on that screen, since all specs are merged later anyway.
+- **Handoff:** Claude writes the Context Block once. The extension inserts it into every step file with a progress ledger, so Scram still gets it in full every time.
+- **Prompt caching:** the large system prompts (extractor, splitter, Scram guide) are marked for caching, so repeat calls read them at a fraction of the input price.
+- **Lower cost further:** in Settings, reduce **Max screens** or **Max controls per screen**, or point **Model** at a cheaper model.
 
 ## Install (unpacked)
 

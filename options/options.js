@@ -110,4 +110,15 @@ $("#clearData").addEventListener("click", async () => {
   alert("All captured data deleted.");
 });
 
+async function showUsage() {
+  const { usage = { input: 0, output: 0, calls: 0 } } = await chrome.storage.local.get("usage");
+  $("#usageTotal").textContent = `All-time Claude usage from this extension: ${usage.calls} calls, ${usage.input.toLocaleString()} input / ${usage.output.toLocaleString()} output tokens.`;
+}
+$("#resetUsage").addEventListener("click", async () => {
+  await chrome.storage.local.set({ usage: { input: 0, output: 0, calls: 0 } });
+  showUsage();
+});
+chrome.storage.onChanged.addListener((changes) => changes.usage && showUsage());
+showUsage();
+
 load();

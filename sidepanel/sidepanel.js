@@ -391,7 +391,10 @@ function renderAutopilot() {
   const ex = ap.explore || {};
   const b = ap.build || {};
   const mins = Math.round((Date.now() - ap.startedAt) / 60000);
-  const usage = data.usage ? ` · ${(data.usage.input / 1000).toFixed(0)}k in / ${(data.usage.output / 1000).toFixed(0)}k out tokens (all-time)` : "";
+  const now = data.usage || { input: 0, output: 0, calls: 0 };
+  const base = ap.usageAtStart || now; // runs started before this field existed: count from here
+  const k = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+  const usage = ` · this run: ${now.calls - (base.calls || 0)} Claude calls, ${k(now.input - base.input)} in / ${k(now.output - base.output)} out tokens`;
   const parts = [`${(ex.pages || []).length} screens explored, ${(ex.queue || []).length} queued`];
   if (b.totalSteps) parts.push(`step ${Math.min(b.step + 1, b.totalSteps)} of ${b.totalSteps}${b.rounds ? ` (round ${b.rounds})` : ""}`);
   $("#apCounters").textContent = `${parts.join(" · ")} · ${mins} min${usage}`;
