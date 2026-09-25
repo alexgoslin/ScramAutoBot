@@ -30,6 +30,12 @@ The stages:
    - types a test string into search boxes and composers to see suggestions, counters, validation and buttons becoming enabled. It never submits.
 
    It then writes the Screen Spec with the network trace and interaction log as observed evidence, and queues other *kinds* of screens: one profile, one post, one settings page, not 500 of each.
+
+   The crawler thinks in **screen types**, not URLs. Every user's profile is one type ("user profile") and every post page is one type ("post detail"), so testuser1's and testuser2's profiles are the same thing. There are two checks:
+   - **Before queueing:** each link is labelled with its type, and a type that's already explored or queued is never queued again.
+   - **After loading:** before any clicks, screenshot or spec, the navigator checks whether the page is just another instance of an explored type. If so, it's skipped and doesn't count toward the screen limit.
+
+   A new type is only recognised when the layout or actions genuinely differ, e.g. your own profile with "Edit profile" vs someone else's with "Follow".
 2. **Handoff:** generates the step files, with your Scram guide included as reference and an original app name.
 3. **Scram setup:** opens Scram and waits for you if you need to log in. A small Claude-driven UI agent then opens or creates the project, opens the AI chat, and sets the bot to Sonnet with low thinking if there's a selector for it.
 4. **Build:** sends each step file with "plan first, wait for approval", then waits until Scram's bot goes quiet. A supervisor reads the bot's new output and decides what to do next:
