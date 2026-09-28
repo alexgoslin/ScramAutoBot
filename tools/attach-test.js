@@ -19,7 +19,7 @@ async function loadTabs() {
   const sel = $("#tab");
   sel.replaceChildren(
     ...(tabs.length
-      ? tabs.map((t) => Object.assign(document.createElement("option"), { value: t.id, textContent: `${t.title} — ${t.url}` }))
+      ? tabs.map((t) => Object.assign(document.createElement("option"), { value: t.id, textContent: `${t.editor ? "✏️ PROJECT EDITOR · " : "📋 project list · "}${t.title} — ${t.url}` }))
       : [Object.assign(document.createElement("option"), { value: "", textContent: "No Scram tab open — open Scram, then press ↻" })])
   );
 }

@@ -4,7 +4,7 @@ import { dom } from "./lib/dom.js";
 import * as autopilot from "./lib/autopilot.js";
 import * as scramAttach from "./lib/scram-attach.js";
 
-const SCRAM_URL = "https://dashboard.buildwithscram.com/";
+const SCRAM_URL = store.SCRAM_HOME;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
@@ -57,12 +57,12 @@ async function findScramTab(progress) {
   if (progress?.scramTabId != null) {
     try {
       const tab = await chrome.tabs.get(progress.scramTabId);
-      if (tab.url?.startsWith(SCRAM_URL)) return tab;
+      if (store.isScramUrl(tab.url)) return tab;
     } catch {
       /* tab closed */
     }
   }
-  const [tab] = await chrome.tabs.query({ url: `${SCRAM_URL}*` });
+  const [tab] = await store.scramTabs();
   return tab || null;
 }
 
@@ -170,8 +170,8 @@ const handlers = {
 
   // Scram upload test page
   attachTestFindTab: async () => {
-    const tabs = await chrome.tabs.query({ url: `${SCRAM_URL}*` });
-    return tabs.map((t) => ({ id: t.id, title: t.title, url: t.url }));
+    const tabs = await store.scramTabs();
+    return tabs.map((t) => ({ id: t.id, title: t.title, url: t.url, editor: store.isScramEditorUrl(t.url) }));
   },
   attachTestScan: ({ tabId }) => scramAttach.scan(tabId),
   attachTestRun: async ({ tabId, methods, send }) => {

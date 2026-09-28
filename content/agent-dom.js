@@ -237,6 +237,9 @@
   }
 
   const ATTACH_HINT = /attach|upload|file|paperclip|clip|image|photo|media|document|add|\+/i;
+  // Strict: only these may ever be clicked to open a file picker.
+  const ATTACH_STRICT = /attach|upload|paper ?clip|add (a )?files?|add attachments?|insert (a )?file|choose files?|browse files?/i;
+  const NEVER_CLICK = /create|new project|project|delete|remove|menu|setting|share|publish|deploy|invite|rename|duplicate|log ?out|sign ?out|billing|upgrade|run|edit|preview/i;
 
   // Describe everything upload-related around the chat, for the diagnostics report.
   function scanChat() {
@@ -254,22 +257,64 @@
       inShadow: el.getRootNode() !== document,
       levelsFromChat: near(el),
     }));
-    const buttons = deepAll("button,[role=button],label,[aria-haspopup]")
+    // Icon buttons are often plain <div>/<span> with a click handler: also collect the nearest
+    // clickable (cursor:pointer) ancestor of each icon near the chat box.
+    const clickables = new Set(deepAll("button,[role=button],label,[aria-haspopup]"));
+    // Anything explicitly named for attaching, whatever its tag — e.g. Scram's paperclip is
+    // <span aria-label="Attach files" class="TooltipReferenceWrapper…">.
+    for (const el of deepAll("[aria-label],[title],[data-tooltip]")) {
+      const name = `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""} ${el.getAttribute("data-tooltip") || ""}`;
+      if (ATTACH_STRICT.test(name) && isVisible(el)) clickables.add(el);
+    }
+    for (const icon of deepAll("svg,img,i[class]")) {
+      if (!input || near(icon) === null || near(icon) > 5 || icon.closest("svg") !== icon && icon.tagName.toLowerCase() !== "img" && icon.tagName.toLowerCase() !== "i") continue;
+      // Climb to the OUTERMOST clickable wrapper (cursor:pointer is inherited, so the svg itself
+      // also reports "pointer" — we want the div/span the page put the click handler on).
+      let pick = null;
+      for (let p = icon.parentElement, i = 0; p && i < 4; p = p.parentElement, i++) {
+        if (p === input || p.contains(input)) break;
+        if (p.matches?.("button,[role=button],label,a")) {
+          pick = p;
+          break;
+        }
+        if (getComputedStyle(p).cursor === "pointer") pick = p;
+        else if (pick) break;
+      }
+      if (pick) clickables.add(pick);
+    }
+    // Words describing the icon itself (e.g. class "lucide-paperclip", data-icon="paperclip", <use href="#paperclip">).
+    const iconHint = (b) =>
+      [b, ...b.querySelectorAll("svg,img,i,use,[data-icon],[data-testid]")]
+        .map((n) => `${n.getAttribute("class") || ""} ${n.getAttribute("data-icon") || ""} ${n.getAttribute("data-testid") || ""} ${n.getAttribute("href") || n.getAttribute("xlink:href") || ""} ${n.getAttribute("alt") || ""} ${(n.getAttribute("src") || "").split("/").pop()}`)
+        .join(" ") + ` ${b.getAttribute("data-testid") || ""} ${b.getAttribute("data-icon") || ""}`;
+    const NOT_ATTACH_ICON = /camera|screenshot|capture|mic|microphone|voice|record|slider|setting|tune|filter|adjust|emoji|send|arrow-up|stop/i;
+    const buttons = [...clickables]
       .filter((b) => isVisible(b) && (near(b) !== null || ATTACH_HINT.test(`${labelOf(b)} ${b.title || ""} ${b.className || ""}`)))
-      .map((b) => ({
-        id: idOf(b),
-        label: labelOf(b),
-        title: b.title || "",
-        tag: b.tagName.toLowerCase(),
-        icon: !!b.querySelector("svg,img,i"),
-        levelsFromChat: near(b),
-        looksLikeAttach: ATTACH_HINT.test(`${labelOf(b)} ${b.title || ""} ${b.getAttribute("aria-label") || ""} ${String(b.className || "")}`),
-      }))
+      .map((b) => {
+        const words = `${labelOf(b)} ${b.title || ""} ${b.getAttribute("aria-label") || ""}`;
+        const hint = iconHint(b);
+        return {
+          id: idOf(b),
+          label: labelOf(b),
+          title: b.title || "",
+          tag: b.tagName.toLowerCase(),
+          icon: !!b.querySelector("svg,img,i"),
+          iconHint: hint.replace(/\s+/g, " ").trim().slice(0, 120),
+          levelsFromChat: near(b),
+          looksLikeAttach: ATTACH_STRICT.test(`${words} ${String(b.className || "")} ${hint}`),
+          neverClick: NEVER_CLICK.test(words) || NOT_ATTACH_ICON.test(`${words} ${hint}`),
+        };
+      })
+      .sort((a, b) => (a.levelsFromChat ?? 99) - (b.levelsFromChat ?? 99))
       .slice(0, 40);
+    // Heuristic: the project list (dashboard) rather than a project's editor.
+    const allLabels = deepAll("button,[role=button],a").filter(isVisible).map(labelOf).join(" | ");
+    const onDashboard = /project menu for|create (a )?(new )?project|new project/i.test(allLabels) && !/\b(edit|run|publish|deploy)\b/i.test(allLabels);
     const editorClass = input ? String(input.className || "") : "";
     return {
       url: location.href,
       title: document.title,
+      onDashboard,
       chatInput: input
         ? {
             id: inputId,

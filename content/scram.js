@@ -1,4 +1,4 @@
-// Runs on dashboard.buildwithscram.com. Shows a small build-queue overlay and,
+// Runs on *.buildwithscram.com (dashboard + project editor). Shows a small build-queue overlay and,
 // when a build is active, tries to open a new project and paste the current
 // step into the Scram AI chat. Scram's DOM isn't a public API, so every
 // automatic action is best-effort with a manual fallback (clipboard + buttons).
@@ -260,7 +260,35 @@
 
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.activeBuild || changes.buildProgress) refresh({ autoRun: false });
+    if (changes.autopilot) renderAutopilot(changes.autopilot.newValue);
   });
+
+  // ------------------------------------------------------------------ Autopilot status bar
+  // Shows what Autopilot is doing in this tab, so it never looks like nothing is happening.
+
+  let apBar = null;
+  function renderAutopilot(ap) {
+    const show = ap && ["running", "paused", "error"].includes(ap.status) && ["scram-setup", "build"].includes(ap.phase);
+    if (!show) {
+      apBar?.remove();
+      apBar = null;
+      return;
+    }
+    if (!apBar) {
+      apBar = document.createElement("div");
+      apBar.id = "scram-autobot-apbar";
+      apBar.innerHTML = `<span class="sab-ap-dot"></span><span class="sab-ap-text"></span><button type="button">Stop</button>`;
+      apBar.querySelector("button").addEventListener("click", () => chrome.runtime.sendMessage({ type: "autopilotStop" }));
+      document.documentElement.appendChild(apBar);
+    }
+    const b = ap.build || {};
+    const step = b.totalSteps ? `Step ${Math.min((b.step || 0) + 1, b.totalSteps)}/${b.totalSteps} · ` : "";
+    const msg = ap.status === "running" ? ap.message : `${ap.status === "paused" ? "Paused" : "Error"}: ${ap.pauseReason || ap.message}`;
+    apBar.querySelector(".sab-ap-text").textContent = `🤖 Autopilot · ${step}${msg || "working…"}`;
+    apBar.dataset.status = ap.status;
+    apBar.querySelector("button").hidden = ap.status !== "running";
+  }
+  chrome.storage.local.get("autopilot").then(({ autopilot }) => renderAutopilot(autopilot));
 
   refresh({ autoRun: true });
 })();

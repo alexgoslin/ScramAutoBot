@@ -44,7 +44,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://dashboard.buildwithscram.com/*"
+        "https://*.buildwithscram.com/*"
       ],
       "js": [
         "content/scram.js"
