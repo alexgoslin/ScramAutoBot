@@ -38,7 +38,7 @@ The stages:
    A new type is only recognised when the layout or actions genuinely differ, e.g. your own profile with "Edit profile" vs someone else's with "Follow".
 2. **Handoff:** generates the step files, with your Scram guide included as reference and an original app name.
 3. **Scram setup:** opens Scram and waits for you if you need to log in. A small Claude-driven UI agent then opens or creates the project, opens the AI chat, and sets the bot to Sonnet with low thinking if there's a selector for it.
-4. **Build:** sends each step file with "plan first, wait for approval", then waits until Scram's bot goes quiet. A supervisor reads the bot's new output and decides what to do next:
+4. **Build:** attaches each step to Scram's chat as a markdown file (e.g. `step-03-timeline.md`) with a short "read the attached work order — plan first, wait for approval" message. If the chat has no upload option, it pastes the text instead, then waits until Scram's bot goes quiet. A supervisor reads the bot's new output and decides what to do next:
    - approves the plan (clicks Approve or replies),
    - answers the bot's questions,
    - pushes it to test every checklist item in Run mode,
@@ -88,7 +88,7 @@ Both prompts were written for a different setup, so the extension adds a short n
 | --- | --- |
 | **Capture** | Shows the current URL, a **Capture this page** button with a spinner and elapsed time, and the pages captured so far for the current site |
 | **Files** | Every spec file, grouped by site. Click a file to read it, **Copy** to copy it, ✕ to delete it |
-| **Handoff** | Pick a site and click **Generate Handoff for …**. Lists the manifest, the combined doc and the steps in order, each readable and copyable |
+| **Handoff** | Pick a site and click **Generate Handoff for …**. Lists the manifest, the combined doc and the steps in order. Each can be read, copied or downloaded as a `.md` file, or use **Download all** |
 | **Build** | **Build in Scram** plus the step queue. Each step has **Send to Scram** (copies it to the clipboard, focuses or opens Scram, and pastes it) and **Done** (marks it complete and sends the next step) |
 
 ## The Scram flow

@@ -13,7 +13,7 @@ async function load() {
   $("#handoffMaxTokens").value = settings.handoffMaxTokens;
   $("#autoSubmit").checked = settings.autoSubmit;
   for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds", "maxRoundsPerStep"]) $(`#${k}`).value = settings[k];
-  for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus"]) $(`#${k}`).checked = settings[k];
+  for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus", "scramSendAsFile"]) $(`#${k}`).checked = settings[k];
   $("#specPrompt").value = promptOverrides.specExtractor || "";
   $("#handoffPrompt").value = promptOverrides.handoffSplitter || "";
 }
@@ -38,6 +38,7 @@ function readSettings() {
     recordResponseBodies: $("#recordResponseBodies").checked,
     screenshots: $("#screenshots").checked,
     autopilotBuild: $("#autopilotBuild").checked,
+    scramSendAsFile: $("#scramSendAsFile").checked,
     scramIdleSeconds: int("#scramIdleSeconds", DEFAULT_SETTINGS.scramIdleSeconds),
     maxRoundsPerStep: int("#maxRoundsPerStep", DEFAULT_SETTINGS.maxRoundsPerStep),
   };

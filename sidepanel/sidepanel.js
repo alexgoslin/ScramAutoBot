@@ -1,4 +1,15 @@
+import { handoffFileName } from "../lib/storage.js";
+
 const $ = (sel) => document.querySelector(sel);
+
+function downloadMd(name, content) {
+  const url = URL.createObjectURL(new Blob([content], { type: "text/markdown" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 let currentTab = null;
 let data = { sites: [], specFiles: [], handoffFiles: [], buildProgress: {}, jobs: {}, apiKey: "", activeBuild: null };
@@ -269,6 +280,7 @@ function renderHandoff() {
   const count = data.specFiles.filter((s) => s.siteUrl === siteUrl).length;
   const btn = $("#generateBtn");
   btn.disabled = !siteUrl || job?.status === "running";
+  $("#downloadAllBtn").classList.toggle("hidden", !data.handoffFiles.some((f) => f.siteUrl === siteUrl && !f.raw));
   btn.textContent =
     job?.status === "running" ? "Generating handoff…" : siteUrl ? `Generate Handoff for ${host(siteUrl)} (${count} page${count === 1 ? "" : "s"})` : "Generate Handoff";
   setStatus($("#handoffStatus"), job);
@@ -291,7 +303,8 @@ function renderHandoff() {
               el("div", { class: "title" }, f.title),
               el("div", { class: "sub" }, `${f.content.length.toLocaleString()} chars`)
             ),
-            el("button", { class: "small", onclick: () => copyText(f.content) }, "Copy")
+            el("button", { class: "small", onclick: () => copyText(f.content) }, "Copy"),
+            el("button", { class: "small ghost", title: `Download ${handoffFileName(f)}`, onclick: () => downloadMd(handoffFileName(f), f.content) }, "⬇ .md")
           );
         })
       : [el("li", { class: "empty" }, siteUrl ? "No handoff generated for this site yet." : "Capture some pages first.")])
@@ -473,6 +486,16 @@ $("#generateBtn").addEventListener("click", async () => {
 });
 
 $("#handoffSite").addEventListener("change", renderHandoff);
+$("#downloadAllBtn").addEventListener("click", async () => {
+  const siteUrl = $("#handoffSite").value;
+  const files = data.handoffFiles.filter((f) => f.siteUrl === siteUrl && !f.raw);
+  // Chrome may ask once to allow multiple downloads from the extension.
+  for (const f of files) {
+    downloadMd(handoffFileName(f), f.content);
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  toast(`Downloaded ${files.length} file(s)`);
+});
 $("#buildSite").addEventListener("change", renderBuild);
 
 $("#buildBtn").addEventListener("click", async () => {

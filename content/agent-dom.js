@@ -227,6 +227,35 @@
     return btn ? idOf(btn) : null;
   }
 
+  // Attach a text file (e.g. a step's .md) to a chat: via the nearest <input type=file>,
+  // or by simulating a drag-and-drop onto the chat box. Returns which method was used.
+  function attachFile(inputId, name, text, mime = "text/markdown") {
+    const file = new File([text], name, { type: mime });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const input = inputId ? byId(inputId) : null;
+
+    let fileInput = null;
+    for (let p = input?.parentElement, i = 0; p && i < 8 && !fileInput; p = p.parentElement, i++) {
+      fileInput = p.querySelector("input[type=file]");
+    }
+    fileInput ||= document.querySelector("input[type=file]");
+    if (fileInput) {
+      try {
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+        return { ok: true, method: "file-input" };
+      } catch {
+        /* fall through to drop */
+      }
+    }
+    const target = input || document.body;
+    const opts = { bubbles: true, cancelable: true, dataTransfer: dt };
+    for (const type of ["dragenter", "dragover", "drop"]) target.dispatchEvent(new DragEvent(type, opts));
+    return { ok: true, method: "drop" };
+  }
+
   function inputValue(id) {
     const el = byId(id);
     if (!el) return null;
@@ -358,7 +387,7 @@
 
   window.__sabDom = {
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating,
+    findChatInput, findSendButton, inputValue, isGenerating, attachFile,
     ping: () => true,
   };
 })();
