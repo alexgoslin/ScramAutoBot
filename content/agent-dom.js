@@ -388,12 +388,26 @@
   }
 
   // Did an attachment with this name show up in the UI (chip, list item, title…)?
+  // Tolerates chips that shorten long names ("scram-upload-te….md").
   function fileShown(name) {
     const base = name.replace(/\.[^.]+$/, "");
-    if ((document.body?.innerText || "").includes(base)) return true;
-    return deepAll("[title],[aria-label],[alt],[download]").some((el) =>
-      ["title", "aria-label", "alt", "download"].some((a) => (el.getAttribute(a) || "").includes(base))
-    );
+    const prefix = base.slice(0, Math.min(12, base.length));
+    const texts = [document.body?.innerText || ""];
+    for (const el of deepAll("[title],[aria-label],[alt],[download]")) {
+      for (const a of ["title", "aria-label", "alt", "download"]) texts.push(el.getAttribute(a) || "");
+    }
+    return texts.some((t) => t.includes(base) || (t.includes(prefix) && /…|\.\.\.|\.md\b/i.test(t)));
+  }
+
+  // The chat composer area (the chat box plus a few wrapping levels) — used to notice a new
+  // attachment chip appearing even if it doesn't show the file name.
+  function composerState(inputId) {
+    const input = inputId ? byId(inputId) : findChatInput() && byId(findChatInput());
+    if (!input) return null;
+    let area = input;
+    for (let i = 0; i < 4 && area.parentElement; i++) area = area.parentElement;
+    const els = [...area.querySelectorAll("*")].filter(isVisible);
+    return { count: els.length, imgs: area.querySelectorAll("img,svg").length, text: (area.innerText || "").slice(0, 2000) };
   }
 
   // Viewport centre of an element (for trusted clicks via the debugger).
@@ -543,7 +557,7 @@
 
   window.__sabDom = {
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, attachFile, attachVia, scanChat, fileShown, centerOf,
+    findChatInput, findSendButton, inputValue, isGenerating, attachFile, attachVia, scanChat, fileShown, composerState, centerOf,
     ping: () => true,
   };
 })();

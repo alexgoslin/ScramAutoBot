@@ -33,10 +33,10 @@
     <section>
       <h2>2. Run the test</h2>
       <p class="hint">
-        The extension makes a small file called <code>scram-upload-test-….md</code> and tries every way of attaching it to Scram's chat, one at a time,
-        checking after each whether the file actually appeared. The last two methods save the file to <code>Downloads/ScramAutoBot/</code> and use
-        Chrome's debugger to make a real click on the attach button (Chrome shows a “debugging this browser” bar briefly — that's expected).
-        Watch the Scram tab while it runs.
+        The extension makes a small file called <code>scram-upload-test-….md</code> <b>in memory</b> (nothing is saved to your computer) and puts it into
+        Scram's chat box — first straight into the chat's hidden file input (the same way Claude in Chrome did it), then, only if needed, by
+        drag-and-drop, paste, or a real click on the paperclip. It stops as soon as the file shows up. The last two methods use Chrome's
+        debugger, so you may briefly see a “debugging this browser” bar. Watch the Scram tab while it runs.
       </p>
       <label class="check"><input id="send" type="checkbox" /> If it attaches, also send a short message asking Scram's AI to confirm it can read the file</label>
       <div class="row">

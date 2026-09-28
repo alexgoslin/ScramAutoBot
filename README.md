@@ -69,12 +69,11 @@ It uses your Anthropic API credits (roughly two calls per explored screen, plus 
 
 ### Testing file upload to Scram
 
-Open **🧪 Test file upload to Scram** (link in Settings and in the Build tab) with a Scram project's AI chat open in another tab. It generates a small `.md` file and tries each attach method in turn, checking after each whether the file really appeared in the chat:
+Open **🧪 Test file upload to Scram** (link in Settings and in the Build tab) with a Scram project's AI chat open in another tab. It generates a small `.md` file **in memory** (nothing is saved to your computer) and tries each attach method in turn, checking after each whether the file really appeared in the chat:
 - **file-input:** Scram's file input.
 - **drag-and-drop:** onto the chat box or its panel.
 - **paste:** into the chat box.
 - **real click:** clicks the attach, paperclip or "+" button, intercepts the file picker Chrome opens, and hands it the file.
-- **saved file:** a copy saved to `Downloads/ScramAutoBot/` and handed to Scram's file input the way the picker does (used only if the others fail).
 
 It remembers the method that worked, and Autopilot uses that method first. If nothing works, copy the report on the page (it describes Scram's chat box and buttons) and send it over.
 

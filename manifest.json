@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Scram Site Analysis & Handoff",
   "version": "1.1.0",
-  "description": "Explore a site, write structured specs with Claude, split them into ordered build steps, and build the clone in Scram — manually or on Autopilot.",
+  "description": "Explore a site, write structured specs with Claude, split them into ordered build steps, and build the clone in Scram \u2014 manually or on Autopilot.",
   "permissions": [
     "sidePanel",
     "storage",
@@ -12,8 +12,7 @@
     "clipboardWrite",
     "debugger",
     "alarms",
-    "notifications",
-    "downloads"
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>",
