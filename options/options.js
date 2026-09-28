@@ -46,12 +46,13 @@ function readSettings() {
 
 async function save() {
   // Old errors (e.g. "No API key set") would otherwise stay visible in the side panel.
-  const { jobs = {} } = await chrome.storage.local.get("jobs");
+  const { jobs = {}, settings: existing = {} } = await chrome.storage.local.get(["jobs", "settings"]);
   const running = Object.fromEntries(Object.entries(jobs).filter(([, j]) => j.status === "running"));
   await chrome.storage.local.set({
     jobs: running,
     apiKey: $("#apiKey").value.trim(),
-    settings: readSettings(),
+    // Merge, so values set elsewhere (e.g. the saved Scram upload method) survive.
+    settings: { ...existing, ...readSettings() },
     promptOverrides: { specExtractor: $("#specPrompt").value, handoffSplitter: $("#handoffPrompt").value },
   });
   $("#saved").textContent = "Saved ✓";

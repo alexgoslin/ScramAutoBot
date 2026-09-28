@@ -227,33 +227,144 @@
     return btn ? idOf(btn) : null;
   }
 
-  // Attach a text file (e.g. a step's .md) to a chat: via the nearest <input type=file>,
-  // or by simulating a drag-and-drop onto the chat box. Returns which method was used.
-  function attachFile(inputId, name, text, mime = "text/markdown") {
-    const file = new File([text], name, { type: mime });
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    const input = inputId ? byId(inputId) : null;
+  // ---------------------------------------------------------------- file attachments (Scram)
 
-    let fileInput = null;
-    for (let p = input?.parentElement, i = 0; p && i < 8 && !fileInput; p = p.parentElement, i++) {
-      fileInput = p.querySelector("input[type=file]");
-    }
-    fileInput ||= document.querySelector("input[type=file]");
-    if (fileInput) {
+  // All elements matching `sel`, including inside open shadow roots.
+  function deepAll(sel, root = document) {
+    const out = [...root.querySelectorAll(sel)];
+    for (const el of root.querySelectorAll("*")) if (el.shadowRoot) out.push(...deepAll(sel, el.shadowRoot));
+    return out;
+  }
+
+  const ATTACH_HINT = /attach|upload|file|paperclip|clip|image|photo|media|document|add|\+/i;
+
+  // Describe everything upload-related around the chat, for the diagnostics report.
+  function scanChat() {
+    const inputId = findChatInput();
+    const input = inputId ? byId(inputId) : null;
+    const near = (el) => {
+      for (let p = input?.parentElement, i = 0; p && i < 7; p = p.parentElement, i++) if (p.contains(el)) return i;
+      return null;
+    };
+    const fileInputs = deepAll("input[type=file]").map((el) => ({
+      id: idOf(el),
+      accept: el.accept || "",
+      multiple: el.multiple,
+      visible: isVisible(el),
+      inShadow: el.getRootNode() !== document,
+      levelsFromChat: near(el),
+    }));
+    const buttons = deepAll("button,[role=button],label,[aria-haspopup]")
+      .filter((b) => isVisible(b) && (near(b) !== null || ATTACH_HINT.test(`${labelOf(b)} ${b.title || ""} ${b.className || ""}`)))
+      .map((b) => ({
+        id: idOf(b),
+        label: labelOf(b),
+        title: b.title || "",
+        tag: b.tagName.toLowerCase(),
+        icon: !!b.querySelector("svg,img,i"),
+        levelsFromChat: near(b),
+        looksLikeAttach: ATTACH_HINT.test(`${labelOf(b)} ${b.title || ""} ${b.getAttribute("aria-label") || ""} ${String(b.className || "")}`),
+      }))
+      .slice(0, 40);
+    const editorClass = input ? String(input.className || "") : "";
+    return {
+      url: location.href,
+      title: document.title,
+      chatInput: input
+        ? {
+            id: inputId,
+            tag: input.tagName.toLowerCase(),
+            contentEditable: input.isContentEditable,
+            editor: /ProseMirror/.test(editorClass) ? "ProseMirror/Tiptap" : /lexical/i.test(editorClass) || input.dataset?.lexicalEditor ? "Lexical" : /ql-editor/.test(editorClass) ? "Quill" : input.tagName === "TEXTAREA" ? "textarea" : "other",
+            placeholder: input.getAttribute("placeholder") || input.dataset?.placeholder || "",
+            classes: editorClass.slice(0, 120),
+          }
+        : null,
+      fileInputs,
+      buttons,
+    };
+  }
+
+  function makeTransfer(name, text, mime) {
+    const dt = new DataTransfer();
+    dt.items.add(new File([text], name, { type: mime }));
+    return dt;
+  }
+
+  // Try ONE attach method in the page (no browser privileges needed):
+  //   file-input      set .files on the file inputs near the chat (or anywhere) + input/change events
+  //   drop-input      drag-and-drop the file onto the chat box
+  //   drop-container  drag-and-drop onto the chat box's surrounding panels
+  //   paste           paste the file into the chat box
+  function attachVia(method, inputId, name, text, mime = "text/markdown") {
+    const input = inputId ? byId(inputId) : null;
+    if (method === "file-input") {
+      const inputs = deepAll("input[type=file]");
+      if (!inputs.length) return { ok: false, error: "no <input type=file> on the page" };
+      const score = (el) => {
+        for (let p = input?.parentElement, i = 0; p && i < 8; p = p.parentElement, i++) if (p.contains(el)) return i;
+        return 99;
+      };
+      const target = inputs.sort((a, b) => score(a) - score(b))[0];
       try {
-        fileInput.files = dt.files;
-        fileInput.dispatchEvent(new Event("input", { bubbles: true }));
-        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-        return { ok: true, method: "file-input" };
-      } catch {
-        /* fall through to drop */
+        target.files = makeTransfer(name, text, mime).files;
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+        target.dispatchEvent(new Event("change", { bubbles: true }));
+        return { ok: true, detail: `set files on input ${idOf(target)}` };
+      } catch (e) {
+        return { ok: false, error: e.message };
       }
     }
-    const target = input || document.body;
-    const opts = { bubbles: true, cancelable: true, dataTransfer: dt };
-    for (const type of ["dragenter", "dragover", "drop"]) target.dispatchEvent(new DragEvent(type, opts));
-    return { ok: true, method: "drop" };
+    if (!input) return { ok: false, error: "no chat input found" };
+    const fire = (el, types, extra = {}) => {
+      const dt = makeTransfer(name, text, mime);
+      for (const type of types) el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer: dt, ...extra }));
+    };
+    if (method === "drop-input") {
+      input.focus();
+      fire(input, ["dragenter", "dragover", "drop"]);
+      return { ok: true };
+    }
+    if (method === "drop-container") {
+      const targets = [];
+      for (let p = input.parentElement, i = 0; p && i < 6; p = p.parentElement, i++) targets.push(p);
+      // Many apps show a drop overlay on dragenter, then listen for drop on that overlay.
+      document.body.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: makeTransfer(name, text, mime) }));
+      for (const t of targets) fire(t, ["dragenter", "dragover", "drop"]);
+      return { ok: true, detail: `dropped on ${targets.length} containers` };
+    }
+    if (method === "paste") {
+      input.focus();
+      const dt = makeTransfer(name, text, mime);
+      input.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, composed: true, clipboardData: dt }));
+      return { ok: true };
+    }
+    return { ok: false, error: `unknown method ${method}` };
+  }
+
+  // Did an attachment with this name show up in the UI (chip, list item, title…)?
+  function fileShown(name) {
+    const base = name.replace(/\.[^.]+$/, "");
+    if ((document.body?.innerText || "").includes(base)) return true;
+    return deepAll("[title],[aria-label],[alt],[download]").some((el) =>
+      ["title", "aria-label", "alt", "download"].some((a) => (el.getAttribute(a) || "").includes(base))
+    );
+  }
+
+  // Viewport centre of an element (for trusted clicks via the debugger).
+  function centerOf(target) {
+    const el = find(target);
+    if (!el) return null;
+    el.scrollIntoView({ block: "center", inline: "center" });
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  // Legacy single-shot helper kept for callers that just want "try the usual way".
+  function attachFile(inputId, name, text, mime = "text/markdown") {
+    const r = attachVia("file-input", inputId, name, text, mime);
+    if (r.ok) return { ...r, method: "file-input" };
+    return { ...attachVia("drop-input", inputId, name, text, mime), method: "drop-input" };
   }
 
   function inputValue(id) {
@@ -387,7 +498,7 @@
 
   window.__sabDom = {
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, attachFile,
+    findChatInput, findSendButton, inputValue, isGenerating, attachFile, attachVia, scanChat, fileShown, centerOf,
     ping: () => true,
   };
 })();

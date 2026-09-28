@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Scram upload test</title>
+  <link rel="stylesheet" href="../options/options.css" />
+  <style>
+    .log { white-space: pre-wrap; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-height: 60px; }
+    .big { font-size: 15px; font-weight: 600; }
+    .ok { color: #047857; }
+    .bad { color: var(--err); }
+    ol { margin: 0; padding-left: 20px; }
+    select { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Scram upload test</h1>
+
+    <section>
+      <h2>1. Get Scram ready</h2>
+      <ol>
+        <li>Open <a href="https://dashboard.buildwithscram.com/" target="_blank">Scram</a> in another tab and log in.</li>
+        <li>Open any project (a throwaway one is fine) so the <b>AI chat box is visible</b>.</li>
+        <li>Come back here and pick that tab:</li>
+      </ol>
+      <div class="row">
+        <select id="tab"></select>
+        <button id="refresh" type="button">↻</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Run the test</h2>
+      <p class="hint">
+        The extension makes a small file called <code>scram-upload-test-….md</code> and tries every way of attaching it to Scram's chat, one at a time,
+        checking after each whether the file actually appeared. The last two methods save the file to <code>Downloads/ScramAutoBot/</code> and use
+        Chrome's debugger to make a real click on the attach button (Chrome shows a “debugging this browser” bar briefly — that's expected).
+        Watch the Scram tab while it runs.
+      </p>
+      <label class="check"><input id="send" type="checkbox" /> If it attaches, also send a short message asking Scram's AI to confirm it can read the file</label>
+      <div class="row">
+        <button id="run" class="primary" type="button">🧪 Run upload test</button>
+        <button id="scan" type="button">Scan Scram's chat only</button>
+      </div>
+      <div id="result" class="big"></div>
+      <div id="log" class="log">(results appear here)</div>
+    </section>
+
+    <section>
+      <h2>3. What Autopilot will use</h2>
+      <p id="current" class="hint"></p>
+      <div class="row">
+        <button id="forget" type="button">Forget the saved method</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Didn't work? Send me this report</h2>
+      <p class="hint">It describes Scram's chat box and buttons (no personal data, no file contents). Copy it and paste it into the chat with Claude.</p>
+      <div class="row"><button id="copy" type="button">Copy report</button></div>
+      <textarea id="report" rows="12" readonly spellcheck="false"></textarea>
+    </section>
+  </main>
+  <script src="attach-test.js" type="module"></script>
+</body>
+</html>
