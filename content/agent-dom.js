@@ -490,12 +490,22 @@
   }
 
   // Is Scram visibly waiting for the user? (plan approval, answer options, a question form)
+  // Is Scram waiting on the user? Returns a short reason ("" if not). Looks at the whole page
+  // (plans/questions can show up in a dialog outside the chat) and at the chat's last message.
   function awaitingUser() {
-    const p = chatPanel() || document.body;
-    const labels = [...p.querySelectorAll("button,[role=button],[role=option],[role=radio],a,input,textarea,[contenteditable=true]")]
+    const labels = [...document.querySelectorAll("button,[role=button],[role=option],[role=radio],a,input,textarea,[contenteditable=true]")]
       .filter(isVisible)
       .map((el) => `${labelOf(el)} ${el.getAttribute("placeholder") || ""}`);
-    return labels.some((l) => /approve( plan)?|accept plan|write my own answer|submit answers?|choose an option|select an option/i.test(l));
+    const hit = labels.find((l) => /approve( plan)?|accept plan|write my own answer|submit answers?|choose an option|select an option/i.test(l));
+    if (hit) return `“${hit.trim().slice(0, 40)}” is on screen`;
+    const p = chatPanel();
+    if (p) {
+      const lines = (p.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
+      // The bot's latest message ends in a question (ignore the chat box's own placeholder text).
+      const lastQ = lines.slice(-4).find((l) => /\?\s*$/.test(l) && l.length > 12 && !/^ask (claude|scram)/i.test(l));
+      if (lastQ) return `the bot asked: “${lastQ.slice(0, 80)}”`;
+    }
+    return "";
   }
 
   function inputValue(id) {
