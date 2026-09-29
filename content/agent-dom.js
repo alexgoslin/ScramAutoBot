@@ -470,6 +470,34 @@
     return { ...attachVia("drop-input", inputId, name, text, mime), method: "drop-input" };
   }
 
+  // The chat panel around the chat box (not the whole page): climb from the chat input while
+  // the container stays narrow (a side panel), so preview/status changes elsewhere are ignored.
+  function chatPanel() {
+    const inputId = findChatInput();
+    let el = inputId ? byId(inputId) : null;
+    if (!el) return null;
+    while (el.parentElement && el.parentElement !== document.body) {
+      const r = el.parentElement.getBoundingClientRect();
+      if (r.width > innerWidth * 0.6) break;
+      el = el.parentElement;
+    }
+    return el;
+  }
+
+  function chatText() {
+    const p = chatPanel();
+    return p ? p.innerText : bodyText();
+  }
+
+  // Is Scram visibly waiting for the user? (plan approval, answer options, a question form)
+  function awaitingUser() {
+    const p = chatPanel() || document.body;
+    const labels = [...p.querySelectorAll("button,[role=button],[role=option],[role=radio],a,input,textarea,[contenteditable=true]")]
+      .filter(isVisible)
+      .map((el) => `${labelOf(el)} ${el.getAttribute("placeholder") || ""}`);
+    return labels.some((l) => /approve( plan)?|accept plan|write my own answer|submit answers?|choose an option|select an option/i.test(l));
+  }
+
   function inputValue(id) {
     const el = byId(id);
     if (!el) return null;
@@ -601,7 +629,7 @@
 
   window.__sabDom = {
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
+    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,
   };
 })();
