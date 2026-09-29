@@ -103,14 +103,9 @@ Both prompts were written for a different setup, so the extension adds a short n
 
 ## The Scram flow
 
-When a build is active, a small overlay appears on the Scram dashboard. It will:
+Nothing is added to Scram's pages: everything is controlled from the side panel. Open a project in Scram yourself, then in the **Build** tab press **Send to Scram** on a step. The extension pastes that step into the project editor's AI chat box, and it only pastes when a project editor is open, never into the "What shall we build today?" box. It presses send only if **Auto-submit** is turned on in Options (off by default, so you can review the text first). Press **Done** when Scram finishes, and the next step is pasted.
 
-- try once to click a "New project" / "Create project" button,
-- wait up to 5 minutes for the AI chat box to appear, then paste the current step into it (the step is also copied to your clipboard),
-- press send only if **Auto-submit** is turned on in Options (off by default, so you can review the text first),
-- give you **Paste into chat**, **Copy step**, **New project** and **✓ Step done — send next** buttons.
-
-Scram has no public API, so its UI is detected with heuristics (button text, textarea or contenteditable placeholders). If detection fails, the step is still on your clipboard: paste it with Ctrl/Cmd+V.
+Scram has no public API, so its UI is detected with heuristics (button text, textarea or contenteditable placeholders).
 
 ## Storage (`chrome.storage.local`)
 

@@ -206,7 +206,10 @@
 
   function findChatInput() {
     const candidates = Array.from(document.querySelectorAll("textarea, [contenteditable=true], [contenteditable=''], [role=textbox]"))
-      .filter((el) => isVisible(el) && !el.disabled && !el.readOnly);
+      .filter((el) => isVisible(el) && !el.disabled && !el.readOnly)
+      // Scram's "What shall we build today? / Describe your project…" box (dashboard, and the
+      // project description on the overview) is NOT the AI chat — never type a step there.
+      .filter((el) => !/describe your project/i.test(`${el.getAttribute("placeholder") || ""} ${el.getAttribute("aria-label") || ""} ${el.dataset?.placeholder || ""} ${el.isContentEditable && el.innerText.length < 100 ? el.innerText : ""}`));
     if (!candidates.length) return null;
     const hint = /ask|message|describe|build|chat|prompt|what|type|tell|ai/i;
     const score = (el) => {
@@ -460,7 +463,14 @@
     if (!el) return null;
     el.scrollIntoView({ block: "center", inline: "center" });
     const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    // Prefer a point where the element is actually on top (a panel may cover part of it).
+    for (const [fx, fy] of [[0.5, 0.5], [0.2, 0.5], [0.8, 0.5], [0.5, 0.25], [0.5, 0.75], [0.1, 0.5], [0.9, 0.5]]) {
+      const x = r.left + r.width * fx;
+      const y = r.top + r.height * fy;
+      const hit = document.elementFromPoint(x, y);
+      if (hit && (hit === el || el.contains(hit))) return { x, y, covered: false };
+    }
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, covered: true };
   }
 
   // Legacy single-shot helper kept for callers that just want "try the usual way".
@@ -637,7 +647,116 @@
     };
   }
 
+  // ---------------------------------------------------------------- Scram controls
+  // Many of Scram's controls are plain <div>/<span>s with a click handler (the "Create new
+  // project" card, the Edit/Run toggle, the project name), so they aren't in INTERACTIVE.
+
+  const pointer = (el) => getComputedStyle(el).cursor === "pointer";
+
+  // The element to click for a piece of text: its closest real control, else the outermost
+  // pointer-cursor wrapper that doesn't also hold much other text.
+  function clickableFor(el) {
+    const ctl = el.closest(INTERACTIVE);
+    if (ctl && isVisible(ctl)) return ctl;
+    let best = pointer(el) ? el : null;
+    const len = clean(el.innerText).length;
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      if (clean(p.innerText).length > len + 40) break;
+      if (pointer(p)) best = p;
+    }
+    return best || el;
+  }
+
+  // Visible elements whose own text matches `pattern` (deepest match only), as clickable targets.
+  function findText(pattern, { flags = "i", maxLen = 80 } = {}) {
+    const re = new RegExp(pattern, flags);
+    const hits = [];
+    for (const el of document.body.querySelectorAll("*")) {
+      if (["SCRIPT", "STYLE", "SVG", "PATH"].includes(el.tagName.toUpperCase())) continue;
+      const raw = el.textContent || "";
+      if (!raw.trim() || raw.length > maxLen * 4) continue; // cheap pre-filter before innerText
+      const t = clean(el.innerText);
+      if (!t || t.length > maxLen || !re.test(t) || !isVisible(el)) continue;
+      if ([...el.children].some((c) => re.test(clean(c.innerText)))) continue; // a child matches too — use it
+      hits.push(el);
+    }
+    return hits.map((el) => {
+      const c = clickableFor(el);
+      return { ...describe(c), text: clean(el.innerText) };
+    });
+  }
+
+  // Scram's Edit / Run toggle. active: true/false, or null if its state can't be told.
+  function modeToggle() {
+    const pick = (re) => findText(re, { maxLen: 12 }).map((d) => byId(d.id)).find((el) => el && !el.closest(LAYERS));
+    const run = pick("^▷?\\s*run$");
+    if (!run) return null;
+    const edit = pick("^✎?\\s*edit$");
+    const score = (el) => {
+      if (!el) return 0;
+      let s = 0;
+      const on = (x) => x.getAttribute("aria-pressed") === "true" || x.getAttribute("aria-selected") === "true" || x.getAttribute("aria-checked") === "true" || x.getAttribute("data-state") === "on" || x.getAttribute("data-state") === "active" || x.getAttribute("data-active") === "true";
+      if (on(el)) s += 10;
+      if (/\b(active|selected|current|checked|is-?on)\b/i.test(el.className?.baseVal ?? el.className ?? "")) s += 5;
+      const cs = getComputedStyle(el);
+      if (cs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)) s += 2;
+      if (cs.boxShadow && cs.boxShadow !== "none") s += 1;
+      if (cs.borderStyle !== "none" && parseFloat(cs.borderWidth) > 0) s += 1;
+      return s;
+    };
+    const r = score(run);
+    const e = score(edit);
+    return { id: idOf(run), label: labelOf(run), editId: edit ? idOf(edit) : null, active: !edit || r === e ? (r >= 10 ? true : null) : r > e };
+  }
+
+  // Close a side panel with this title (e.g. Scram's "Plans" panel, which hides the Edit/Run toggle).
+  function closePanel(titlePattern) {
+    const title = findText(titlePattern, { maxLen: 20 }).map((d) => byId(d.id)).find(Boolean);
+    if (!title) return false;
+    for (let box = title.parentElement, i = 0; box && box !== document.body && i < 6; box = box.parentElement, i++) {
+      const close = [...box.querySelectorAll("button,[role=button],[aria-label],span,div")].find(
+        (el) => isVisible(el) && (/^(close|dismiss)$/i.test(el.getAttribute("aria-label") || "") || /^[×✕✖x]$/i.test(clean(el.innerText)))
+      );
+      if (close) {
+        close.click();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Scram project overview (after clicking "More"): the project's name, shown above
+  // "Describe your project…". Returns a click target for it.
+  function projectNameTarget() {
+    const desc =
+      findText("^describe your project", { maxLen: 120 }).map((d) => byId(d.id)).find(Boolean) ||
+      [...document.querySelectorAll("[placeholder],[data-placeholder],[aria-placeholder]")].find(
+        (el) => isVisible(el) && /^describe your project/i.test(el.getAttribute("placeholder") || el.getAttribute("data-placeholder") || el.getAttribute("aria-placeholder") || "")
+      );
+    if (!desc) return null;
+    for (let el = desc; el && el !== document.body; el = el.parentElement) {
+      for (let prev = el.previousElementSibling; prev; prev = prev.previousElementSibling) {
+        const t = clean(prev.innerText);
+        if (t && t.length <= 80 && isVisible(prev)) {
+          let leaf = prev;
+          while (leaf.children.length === 1 && clean(leaf.children[0].innerText) === t) leaf = leaf.children[0];
+          return { ...describe(leaf), text: t };
+        }
+      }
+    }
+    return null;
+  }
+
+  // Type into whatever has focus (e.g. the project name after clicking it), replacing its content.
+  function typeActive(text) {
+    const el = document.activeElement;
+    if (!el || el === document.body) return { ok: false, error: "nothing is focused" };
+    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable) return typeText(idOf(el), text);
+    return { ok: false, error: `focused element is a ${el.tagName.toLowerCase()}, not a text field` };
+  }
+
   window.__sabDom = {
+    findText, modeToggle, closePanel, projectNameTarget, typeActive,
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,

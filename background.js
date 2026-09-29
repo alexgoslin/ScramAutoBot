@@ -83,30 +83,24 @@ async function startBuild(siteUrl) {
   return { tabId: tab.id };
 }
 
-async function buildState() {
-  const siteUrl = await store.get("activeBuild", null);
-  if (!siteUrl) return { active: false };
-  const [steps, progress, settings] = await Promise.all([store.getSteps(siteUrl), store.getProgress(siteUrl), store.getSettings()]);
-  const step = steps.find((s) => s.stepNumber === progress.currentStep) || null;
-  return {
-    active: true,
-    siteUrl,
-    step,
-    totalSteps: steps.length,
-    stepIndex: step ? steps.indexOf(step) : -1,
-    progress,
-    finished: steps.every((s) => progress.completedSteps.includes(s.stepNumber)),
-    autoSubmit: settings.autoSubmit,
-  };
-}
-
-async function notifyScram(siteUrl, message) {
+// Paste the current step into the Scram tab's AI chat (only inside a project editor — never the
+// dashboard's "What shall we build today?" box). Sends it too if "auto-submit" is on.
+async function pasteCurrentStep(siteUrl) {
   const progress = await store.getProgress(siteUrl);
   const tab = await findScramTab(progress);
-  if (!tab) return false;
+  if (!tab || !store.isScramEditorUrl(tab.url)) return false;
+  const step = (await store.getSteps(siteUrl)).find((s) => s.stepNumber === progress.currentStep);
+  if (!step) return false;
   try {
-    await chrome.tabs.sendMessage(tab.id, message);
-    return true;
+    const inputId = await dom(tab.id, "findChatInput");
+    if (!inputId) return false;
+    const typed = await dom(tab.id, "typeText", inputId, step.content);
+    if (typed?.ok && (await store.getSettings()).autoSubmit) {
+      const sendId = await dom(tab.id, "findSendButton", inputId);
+      if (sendId) await dom(tab.id, "click", sendId);
+      else await dom(tab.id, "pressKey", "Enter", inputId);
+    }
+    return !!typed?.ok;
   } catch {
     return false;
   }
@@ -121,7 +115,7 @@ async function completeStep(siteUrl, stepNumber) {
   const updated = { ...progress, completedSteps: [...completed].sort((a, b) => a - b), currentStep: next ? next.stepNumber : stepNumber };
   await store.setProgress(updated);
   if (next && (await store.get("activeBuild")) === siteUrl) {
-    await notifyScram(siteUrl, { type: "scram:pasteStep" });
+    await pasteCurrentStep(siteUrl);
   }
   return updated;
 }
@@ -139,7 +133,7 @@ async function sendStep(siteUrl, stepNumber) {
   await chrome.tabs.update(tab.id, { active: true });
   await chrome.windows.update(tab.windowId, { focused: true });
   await store.setProgress({ ...(await store.getProgress(siteUrl)), scramTabId: tab.id });
-  await notifyScram(siteUrl, { type: "scram:pasteStep" });
+  await pasteCurrentStep(siteUrl);
   return { opened: false };
 }
 
@@ -206,18 +200,6 @@ const handlers = {
   autopilotResume: () => autopilot.resume(),
   autopilotReset: () => autopilot.reset(),
 
-  // From the Scram content script.
-  "scram:getState": () => buildState(),
-  "scram:markProjectAttempted": async () => {
-    const siteUrl = await store.get("activeBuild");
-    if (siteUrl) await store.setProgress({ ...(await store.getProgress(siteUrl)), autoProjectAttempted: true });
-  },
-  "scram:completeCurrent": async () => {
-    const state = await buildState();
-    if (!state.active || !state.step) throw new Error("No active build step.");
-    await completeStep(state.siteUrl, state.step.stepNumber);
-    return buildState();
-  },
 };
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
