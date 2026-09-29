@@ -94,7 +94,7 @@ async function pasteCurrentStep(siteUrl) {
   try {
     const inputId = await dom(tab.id, "findChatInput");
     if (!inputId) return false;
-    const typed = await dom(tab.id, "typeText", inputId, step.content);
+    const typed = await dom(tab.id, "typeText", inputId, store.withTestingSection(step.content));
     if (typed?.ok && (await store.getSettings()).autoSubmit) {
       const sendId = await dom(tab.id, "findSendButton", inputId);
       if (sendId) await dom(tab.id, "click", sendId);

@@ -37,7 +37,7 @@ The stages:
 
    A new type is only recognised when the layout or actions genuinely differ, e.g. your own profile with "Edit profile" vs someone else's with "Follow".
 2. **Handoff:** generates the step files, with your Scram guide included as reference and an original app name.
-3. **Scram setup:** opens Scram and waits for you if you need to log in. A small Claude-driven UI agent then opens or creates the project, opens the AI chat, and sets the bot to Sonnet with low thinking if there's a selector for it.
+3. **Scram setup:** opens Scram in its own tab and waits for you if you need to log in. It clicks **Create new project**, waits for Scram to open the new project, renames it (More → project name), switches Scram to **Run mode**, and sets the bot to Sonnet with low thinking if there's a selector for it. Autopilot only ever uses the tab it opened, plus a tab that tab opens. Your other Scram tabs are never touched, and if its tab is closed it pauses and waits for you to press Resume. Every step file ends with a "Test it yourself in Run mode" section, and Run mode stays on for the whole build so Scram's bot can test its own work.
 4. **Build:** attaches each step to Scram's chat as a markdown file (e.g. `step-03-timeline.md`) with a short "read the attached work order — plan first, wait for approval" message. If the chat has no upload option, it pastes the text instead, then waits until Scram's bot goes quiet. A supervisor reads the bot's new output and decides what to do next:
    - approves the plan (clicks Approve or replies),
    - answers the bot's questions,
