@@ -3,6 +3,7 @@ import { generateSpec, generateHandoff } from "./lib/jobs.js";
 import { dom } from "./lib/dom.js";
 import * as autopilot from "./lib/autopilot.js";
 import * as scramAttach from "./lib/scram-attach.js";
+import * as chatTest from "./lib/scram-chat-test.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
@@ -194,6 +195,10 @@ const handlers = {
     return { ...res, name };
   },
   attachTestForget: () => scramAttach.rememberMethod(null),
+
+  // Scram chat test page (plans + questions)
+  chatTestStart: ({ tabId, mode, dryRun, maxRounds }) => chatTest.start({ tabId, mode, dryRun, maxRounds }),
+  chatTestStop: () => chatTest.stop(),
 
   // Autopilot
   autopilotStart: ({ tabId, instructions }) => autopilot.start({ tabId, instructions }),

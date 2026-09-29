@@ -216,18 +216,38 @@
     return idOf(candidates.sort((a, b) => score(b) - score(a))[0]);
   }
 
+  // The chat's send control. Often not a <button>: e.g. an arrow icon inside
+  // <span aria-label="Send"> — so look at labelled elements and clickable icon wrappers too.
   function findSendButton(inputId) {
     const input = byId(inputId);
     if (!input) return null;
-    let scope = input.closest("form");
-    for (let p = input.parentElement, i = 0; !scope && p && i < 5; p = p.parentElement, i++) {
-      if (p.querySelectorAll("button,[role=button]").length) scope = p;
+    let area = input;
+    for (let i = 0; i < 5 && area.parentElement; i++) area = area.parentElement;
+    const words = (el) => `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""} ${el.getAttribute("data-testid") || ""} ${el.innerText || ""}`;
+    const inArea = (sel) => Array.from(area.querySelectorAll(sel)).filter((el) => isVisible(el) && el !== input && !input.contains(el));
+
+    const labelled = inArea("button,[role=button],[aria-label],[title],[data-testid]").find((el) => /\b(send|submit)\b/i.test(words(el)) && !/attach|upload|file/i.test(words(el)));
+    if (labelled) return idOf(labelled);
+    const submit = inArea("button[type=submit],input[type=submit]")[0];
+    if (submit) return idOf(submit);
+
+    // Clickable icon wrappers in the composer; skip attach/camera/settings/mic, take the last (send is usually rightmost).
+    const NOT_SEND = /attach|upload|file|paper ?clip|camera|screenshot|capture|mic|voice|record|slider|setting|tune|emoji|model|stop/i;
+    const clickable = [];
+    for (const icon of inArea("svg,img,i[class]")) {
+      let pick = null;
+      for (let p = icon.parentElement, i = 0; p && i < 4 && area.contains(p); p = p.parentElement, i++) {
+        if (p === input || p.contains(input)) break;
+        if (p.matches("button,[role=button],a")) { pick = p; break; }
+        if (getComputedStyle(p).cursor === "pointer") pick = p;
+        else if (pick) break;
+      }
+      if (pick && !clickable.includes(pick)) clickable.push(pick);
     }
-    const buttons = Array.from((scope || document).querySelectorAll("button,[role=button]")).filter(isVisible);
-    const btn =
-      buttons.find((b) => /send|submit/i.test(`${b.getAttribute("aria-label") || ""} ${b.innerText || ""} ${b.title || ""}`)) ||
-      buttons.find((b) => b.type === "submit") ||
-      buttons[buttons.length - 1];
+    const hint = (el) => `${words(el)} ${[el, ...el.querySelectorAll("svg,use,i,img")].map((n) => `${n.getAttribute("class") || ""} ${n.getAttribute("data-icon") || ""}`).join(" ")}`;
+    const candidates = clickable.filter((el) => !NOT_SEND.test(hint(el)));
+    const byIcon = candidates.find((el) => /send|arrow-up|arrow-right|paper-?plane/i.test(hint(el)));
+    const btn = byIcon || candidates[candidates.length - 1] || inArea("button,[role=button]").filter((b) => !NOT_SEND.test(hint(b))).pop();
     return btn ? idOf(btn) : null;
   }
 

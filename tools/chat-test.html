@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Scram chat test</title>
+  <link rel="stylesheet" href="../options/options.css" />
+  <style>
+    .log { white-space: pre-wrap; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-height: 80px; max-height: 420px; overflow: auto; }
+    .big { font-size: 15px; font-weight: 600; }
+    .ok { color: #047857; }
+    .bad { color: var(--err); }
+    ol { margin: 0; padding-left: 20px; }
+    select { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+    .modes { display: grid; gap: 8px; }
+    .modes label { font-weight: 400; display: flex; gap: 8px; align-items: flex-start; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Scram chat test — plans &amp; questions</h1>
+    <p class="hint">Runs the same supervisor Autopilot uses, on a tiny task, so you can watch it approve Scram's plans and answer its questions. Use a throwaway project.</p>
+
+    <section>
+      <h2>1. Pick the Scram project editor</h2>
+      <p class="hint">Open a project on <b>editor.buildwithscram.com</b> with the Chat panel (“Ask Claude…”) visible, then pick it:</p>
+      <div class="row">
+        <select id="tab"></select>
+        <button id="refresh" type="button">↻</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Choose what to test</h2>
+      <div class="modes">
+        <label><input type="radio" name="mode" value="full" checked />
+          <span><b>Full test</b> — sends Scram a tiny task (“add a heading that says <i>Hello from the tester</i> to the Home Page”), asking it to
+          propose a plan and ask one question first. The supervisor then approves the plan, answers the question and follows through until Scram
+          says it's done. <b>Uses a little Scram credit</b> and changes that project's Home Page.</span></label>
+        <label><input type="radio" name="mode" value="onscreen" />
+          <span><b>Handle what's on screen</b> — sends nothing new; deals with whatever is in the chat right now (e.g. a plan waiting for
+          “Approve plan”, or a question).</span></label>
+      </div>
+      <label class="check"><input id="dry" type="checkbox" checked /> <span><b>Dry run</b> — only show what it <i>would</i> do (“would click Approve plan”, “would reply …”), without clicking or typing. (Only for “Handle what's on screen”.)</span></label>
+      <div class="row">
+        <label for="rounds">Max rounds</label>
+        <select id="rounds" style="width:auto">
+          <option value="1">1</option>
+          <option value="3">3</option>
+          <option value="8" selected>8</option>
+          <option value="15">15</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="run" class="primary" type="button">▶ Run chat test</button>
+        <button id="stop" type="button">Stop</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. What it did</h2>
+      <div id="status" class="big"></div>
+      <div id="log" class="log">(the supervisor's decisions appear here as it works — watch the Scram tab too)</div>
+      <div class="row"><button id="copy" type="button">Copy log</button></div>
+    </section>
+  </main>
+  <script src="chat-test.js" type="module"></script>
+</body>
+</html>
