@@ -277,7 +277,7 @@
     if (!apBar) {
       apBar = document.createElement("div");
       apBar.id = "scram-autobot-apbar";
-      apBar.innerHTML = `<span class="sab-ap-dot"></span><span class="sab-ap-text"></span><button type="button">Stop</button>`;
+      apBar.innerHTML = `<span class="sab-ap-dot"></span><span class="sab-ap-text"></span><button type="button">Stop Autopilot</button>`;
       apBar.querySelector("button").addEventListener("click", () => chrome.runtime.sendMessage({ type: "autopilotStop" }));
       document.documentElement.appendChild(apBar);
     }

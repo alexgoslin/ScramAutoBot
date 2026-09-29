@@ -9,8 +9,12 @@
   let nextId = 1;
   const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
 
+  // The extension's own on-page UI (Autopilot status bar, build overlay) must never be read as
+  // part of the site — e.g. its "Stop Autopilot" button looked like Scram's "Stop generating".
+  const OUR_UI = "#scram-autobot-apbar, #scram-autobot-overlay";
   const isVisible = (el) => {
     if (!el || !el.getBoundingClientRect) return false;
+    if (el.closest?.(OUR_UI)) return false;
     const r = el.getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) return false;
     const cs = getComputedStyle(el);
@@ -410,6 +414,26 @@
     return { count: els.length, imgs: area.querySelectorAll("img,svg").length, text: (area.innerText || "").slice(0, 2000) };
   }
 
+  // Expand collapsed content in the chat (e.g. Scram's plan card "Read more") so the whole
+  // plan/question can be read. Only clicks small, clearly "expand"-type controls.
+  function expandCollapsed() {
+    const inputId = findChatInput();
+    const input = inputId ? byId(inputId) : null;
+    let panel = input;
+    for (let i = 0; panel && i < 10 && panel.parentElement; i++) panel = panel.parentElement;
+    const scope = panel || document;
+    let n = 0;
+    for (const el of deepAll("a,button,[role=button],span,div", scope)) {
+      if (!isVisible(el) || el.children.length > 2) continue;
+      const t = clean(el.innerText || el.textContent);
+      if (/^(read more|show more|see more|expand|show full plan|view full plan|view plan|show all|more)\.{0,3}$/i.test(t) && el.getAttribute("aria-expanded") !== "true") {
+        el.click();
+        n++;
+      }
+    }
+    return n;
+  }
+
   // Viewport centre of an element (for trusted clicks via the debugger).
   function centerOf(target) {
     const el = find(target);
@@ -557,7 +581,7 @@
 
   window.__sabDom = {
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, attachFile, attachVia, scanChat, fileShown, composerState, centerOf,
+    findChatInput, findSendButton, inputValue, isGenerating, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,
   };
 })();
