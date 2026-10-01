@@ -22,3 +22,8 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 button.link { background: none; border: 0; padding: 0; color: var(--accent); justify-self: start; font-size: 12px; }
 .danger-btn { color: var(--err); border-color: var(--err); }
 .savebar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+
+.lessons { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.lessons li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lessons li span { flex: 1 1 260px; }
+#newLesson { flex: 1 1 260px; }

@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, getSettings } from "../lib/storage.js";
+import { DEFAULT_SETTINGS, getSettings, getLessons, addLessons, removeLesson } from "../lib/storage.js";
 import { callClaude } from "../lib/claude.js";
 
 const $ = (sel) => document.querySelector(sel);
@@ -125,3 +125,41 @@ chrome.storage.onChanged.addListener((changes) => changes.usage && showUsage());
 showUsage();
 
 load();
+
+// ---- lessons learned about Scram's AI
+async function renderLessons() {
+  const list = $("#lessons");
+  const lessons = await getLessons();
+  list.replaceChildren(
+    ...(lessons.length
+      ? lessons.map((l) => {
+          const li = document.createElement("li");
+          const text = document.createElement("span");
+          text.textContent = l.text;
+          const meta = document.createElement("small");
+          meta.className = "hint";
+          meta.textContent = ` — ${l.source || "added"} · ${new Date(l.learnedAt).toLocaleDateString()}`;
+          const del = document.createElement("button");
+          del.type = "button";
+          del.textContent = "Delete";
+          del.addEventListener("click", async () => {
+            await removeLesson(l.id);
+            renderLessons();
+          });
+          li.append(text, meta, del);
+          return li;
+        })
+      : [Object.assign(document.createElement("li"), { className: "hint", textContent: "Nothing learned yet." })])
+  );
+}
+$("#addLesson").addEventListener("click", async () => {
+  const text = $("#newLesson").value.trim();
+  if (!text) return;
+  await addLessons([text], "added by you");
+  $("#newLesson").value = "";
+  renderLessons();
+});
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.scramLessons) renderLessons();
+});
+renderLessons();

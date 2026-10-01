@@ -91,6 +91,19 @@
     </section>
 
     <section>
+      <h2>What it has learned about Scram's AI</h2>
+      <p class="hint">
+        When Scram's AI says it can't do something, Autopilot writes a lesson here and never asks for that again.
+        It keeps these across runs. Delete any that are wrong, or add your own.
+      </p>
+      <ul id="lessons" class="lessons"></ul>
+      <div class="row">
+        <input id="newLesson" type="text" placeholder="e.g. Scram's AI can't open the app's admin panel" />
+        <button id="addLesson" type="button">Add</button>
+      </div>
+    </section>
+
+    <section>
       <h2>Prompts</h2>
       <p class="hint">
         Leave blank to use the bundled prompts in <code>prompts/</code>. Paste your own
