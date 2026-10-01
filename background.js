@@ -216,6 +216,7 @@ const handlers = {
   autopilotStop: () => autopilot.stop(),
   autopilotResume: () => autopilot.resume(),
   autopilotReset: () => autopilot.reset(),
+  autopilotNote: ({ text }) => autopilot.addNote(text),
 
 };
 

@@ -137,6 +137,13 @@ select {
   background: var(--code-bg); border-radius: 6px;
 }
 .ap-log li { margin-bottom: 2px; word-break: break-word; }
+.ap-log li.you { color: var(--accent); font-weight: 600; }
+.ap-log li.bot { font-weight: 600; }
+.ap-chat { display: flex; gap: 6px; margin-top: 6px; }
+.ap-chat input {
+  flex: 1; min-width: 0; font: inherit; font-size: 12px; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
 .site-group h4 { margin: 0 0 6px; font-size: 12px; display: flex; justify-content: space-between; }
 
 .banner { padding: 8px 12px; font-size: 12px; }

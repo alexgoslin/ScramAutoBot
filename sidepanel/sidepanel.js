@@ -420,8 +420,16 @@ function renderAutopilot() {
   $("#apReset").classList.toggle("hidden", !!active);
 
   const log = $("#apLog");
-  log.replaceChildren(...(ap.log || []).slice(-60).map((l) => el("li", {}, `${new Date(l.t).toLocaleTimeString()} ${l.msg}`)));
-  if (!log.classList.contains("hidden")) log.scrollTop = log.scrollHeight;
+  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
+  log.replaceChildren(
+    ...(ap.log || []).slice(-80).map((l) => {
+      const kind = l.msg.startsWith("💬 You:") ? "you" : l.msg.startsWith("🤖 Autopilot:") ? "bot" : "";
+      return el("li", kind ? { class: kind } : {}, `${new Date(l.t).toLocaleTimeString()} ${l.msg}`);
+    })
+  );
+  if (!log.classList.contains("hidden") && atBottom) log.scrollTop = log.scrollHeight;
+  // The chat box sits under the log and works while Autopilot is running or paused.
+  $("#apChat").classList.toggle("hidden", log.classList.contains("hidden") || !active);
 }
 
 $("#apStart").addEventListener("click", async () => {
@@ -454,6 +462,25 @@ $("#apLogToggle").addEventListener("click", () => {
   log.classList.toggle("hidden");
   $("#apLogToggle").textContent = log.classList.contains("hidden") ? "Show log" : "Hide log";
   log.scrollTop = log.scrollHeight;
+  renderAutopilot();
+  if (!log.classList.contains("hidden")) $("#apChatInput").focus();
+});
+$("#apChat").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#apChatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  $("#apChatSend").disabled = true;
+  try {
+    await send("autopilotNote", { text });
+    input.value = "";
+    $("#apLog").scrollTop = $("#apLog").scrollHeight;
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    $("#apChatSend").disabled = false;
+    input.focus();
+  }
 });
 
 $("#captureBtn").addEventListener("click", async () => {
