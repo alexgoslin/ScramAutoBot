@@ -30,13 +30,16 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; max-width: 100%; overflow-x: hidden; }
 body {
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-width: 280px;
 }
+/* Everything fits the panel's width: grid/flex children may shrink, long words wrap. */
+.card > *, .row > *, main, .panel { min-width: 0; max-width: 100%; }
+p, li, div, span, label { overflow-wrap: anywhere; }
+input, textarea, select { max-width: 100%; }
 
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
@@ -50,7 +53,8 @@ body {
   position: sticky; top: 0; z-index: 2;
 }
 .tabs button {
-  background: none; border: 0; border-bottom: 2px solid transparent;
+  background: none; border: 0; border-bottom: 2px solid transparent; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   padding: 10px 4px; color: var(--muted); font: inherit; cursor: pointer;
 }
 .tabs button.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
@@ -83,7 +87,7 @@ button.small { padding: 4px 8px; font-size: 12px; }
 button.block { width: 100%; }
 
 select {
-  font: inherit; padding: 6px 8px; border-radius: 8px; width: 100%;
+  font: inherit; padding: 6px 8px; border-radius: 8px; width: 100%; min-width: 0; text-overflow: ellipsis;
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
 }
 
@@ -103,9 +107,11 @@ select {
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .item {
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 10px; display: flex; gap: 8px; align-items: center;
+  padding: 8px 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
 }
-.item .main { flex: 1; min-width: 0; cursor: pointer; }
+/* Buttons drop below the title when the panel is narrow instead of pushing it sideways. */
+.item .main { flex: 1 1 120px; min-width: 0; cursor: pointer; }
+.item > button { flex: none; }
 .item .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item.done { opacity: 0.7; }
@@ -136,7 +142,7 @@ select {
   font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: var(--code-bg); border-radius: 6px;
 }
-.ap-log li { margin-bottom: 2px; word-break: break-word; }
+.ap-log li { margin-bottom: 2px; word-break: break-word; overflow-wrap: anywhere; }
 .ap-log li.you { color: var(--accent); font-weight: 600; }
 .ap-log li.bot { font-weight: 600; }
 .ap-chat { display: flex; gap: 6px; margin-top: 6px; }
@@ -144,7 +150,7 @@ select {
   flex: 1; min-width: 0; font: inherit; font-size: 12px; padding: 6px 8px; border-radius: 8px;
   border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
-.site-group h4 { margin: 0 0 6px; font-size: 12px; display: flex; justify-content: space-between; }
+.site-group h4 { margin: 0 0 6px; font-size: 12px; display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
 
 .banner { padding: 8px 12px; font-size: 12px; }
 .banner.warn { background: var(--warn-bg); color: var(--warn); }

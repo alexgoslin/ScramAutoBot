@@ -71,6 +71,10 @@
 
     <!-- FILES -->
     <section id="tab-files" class="panel">
+      <div class="card">
+        <label class="label" for="filesSite">Site</label>
+        <select id="filesSite" class="site-select"></select>
+      </div>
       <div id="filesList"></div>
     </section>
 
@@ -78,7 +82,7 @@
     <section id="tab-handoff" class="panel">
       <div class="card">
         <label class="label" for="handoffSite">Site</label>
-        <select id="handoffSite"></select>
+        <select id="handoffSite" class="site-select"></select>
         <button id="generateBtn" class="primary block">Generate Handoff</button>
         <button id="downloadAllBtn" class="small">⬇ Download all as .md files</button>
         <div id="handoffStatus" class="status"></div>
@@ -90,7 +94,7 @@
     <section id="tab-build" class="panel">
       <div class="card">
         <label class="label" for="buildSite">Site</label>
-        <select id="buildSite"></select>
+        <select id="buildSite" class="site-select"></select>
         <button id="buildBtn" class="primary block">Build in Scram</button>
         <div class="row">
           <button id="resetBuildBtn" class="ghost small">Reset progress</button>
@@ -100,8 +104,9 @@
         <a href="../tools/attach-test.html" target="_blank" class="small-text">🧪 Test file upload to Scram</a>
         <a href="../tools/chat-test.html" target="_blank" class="small-text">🧪 Test plans &amp; questions in Scram</a>
         <p class="muted small-text">
-          “Build in Scram” opens the Scram dashboard, tries to start a new project and pastes Step 0 into the AI chat.
-          When Scram finishes a step, mark it done here and the next step is sent.
+          “Build in Scram” opens Scram. Open or create your project there, then press “Send to Scram” on a step:
+          it switches Scram to Run mode and pastes the step into the project's AI chat. When Scram finishes a step,
+          press Done and the next one is pasted.
         </p>
       </div>
       <ul id="buildList" class="list"></ul>

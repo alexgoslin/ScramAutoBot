@@ -171,8 +171,8 @@ function render() {
   $("#apiKeyBanner").classList.toggle("hidden", !!data.apiKey);
   renderAutopilot();
   renderCapture();
-  renderFiles();
   renderSiteSelects();
+  renderFiles();
   renderHandoff();
   renderBuild();
 }
@@ -224,62 +224,71 @@ function specItem(spec) {
   );
 }
 
-function renderFiles() {
-  const container = $("#filesList");
-  const bySite = new Map();
-  for (const s of data.specFiles) {
-    if (!bySite.has(s.siteUrl)) bySite.set(s.siteUrl, []);
-    bySite.get(s.siteUrl).push(s);
-  }
-  if (!bySite.size) {
-    container.replaceChildren(el("div", { class: "empty" }, "No spec files yet. Capture a page from the Capture tab."));
-    return;
-  }
-  container.replaceChildren(
-    ...[...bySite.entries()]
-      .sort(([a], [b]) => host(a).localeCompare(host(b)))
-      .map(([siteUrl, specs]) =>
-        el(
-          "div",
-          { class: "site-group" },
-          el("h4", {}, el("span", {}, host(siteUrl)), el("span", { class: "muted" }, `${specs.length} page${specs.length === 1 ? "" : "s"}`)),
-          el("ul", { class: "list" }, specs.sort((a, b) => a.capturedAt.localeCompare(b.capturedAt)).map(specItem))
-        )
-      )
-  );
-}
+// ---- one site picker shared by Files, Handoff and Build. It opens on the most recently cloned
+// site, and jumps to a newer one when you start cloning it; picking a site by hand sticks
+// (in all three tabs) until another site becomes the most recent.
+let selectedSite = null;
+let lastMostRecent = null;
 
-function sitesWithSpecs() {
-  return [...new Set(data.specFiles.map((s) => s.siteUrl))];
-}
-function sitesWithSteps() {
-  return [...new Set(data.handoffFiles.filter((f) => f.fileType === "step").map((f) => f.siteUrl))];
-}
-
-function fillSelect(select, siteUrls, emptyLabel) {
-  const prev = select.value;
-  const current = siteUrlOf(currentTab?.url || "");
-  const options = siteUrls.length
-    ? siteUrls.map((s) => el("option", { value: s }, host(s)))
-    : [el("option", { value: "" }, emptyLabel)];
-  select.replaceChildren(...options);
-  if (siteUrls.includes(prev)) select.value = prev;
-  else if (select.id === "buildSite" && siteUrls.includes(data.activeBuild)) select.value = data.activeBuild;
-  else if (siteUrls.includes(current)) select.value = current;
-  select.disabled = !siteUrls.length;
+function sitesByRecency() {
+  const latest = new Map();
+  const bump = (site, when) => {
+    if (!site || !when) return;
+    const t = typeof when === "number" ? when : Date.parse(when) || 0;
+    latest.set(site, Math.max(latest.get(site) || 0, t));
+  };
+  for (const s of data.specFiles) bump(s.siteUrl, s.capturedAt);
+  for (const f of data.handoffFiles) bump(f.siteUrl, f.createdAt);
+  for (const s of data.sites) bump(s.siteUrl, s.lastCapturedAt || s.firstCapturedAt);
+  if (data.autopilot?.siteUrl) bump(data.autopilot.siteUrl, data.autopilot.startedAt);
+  return [...latest.entries()].sort((a, b) => b[1] - a[1]).map(([site]) => site);
 }
 
 function renderSiteSelects() {
-  fillSelect($("#handoffSite"), sitesWithSpecs(), "No captured sites yet");
-  fillSelect($("#buildSite"), sitesWithSteps(), "No handoffs generated yet");
+  const sites = sitesByRecency();
+  const mostRecent = sites[0] || null;
+  if (mostRecent !== lastMostRecent) {
+    selectedSite = mostRecent; // a newer clone appeared (or the panel just opened)
+    lastMostRecent = mostRecent;
+  }
+  if (!sites.includes(selectedSite)) selectedSite = mostRecent;
+  const pages = (site) => data.specFiles.filter((s) => s.siteUrl === site).length;
+  const steps = (site) => data.handoffFiles.filter((f) => f.siteUrl === site && f.fileType === "step").length;
+  for (const select of document.querySelectorAll(".site-select")) {
+    select.replaceChildren(
+      ...(sites.length
+        ? sites.map((site, i) =>
+            el("option", { value: site }, `${host(site)}${i === 0 ? " (latest)" : ""} — ${pages(site)} page${pages(site) === 1 ? "" : "s"} · ${steps(site)} step${steps(site) === 1 ? "" : "s"}`)
+          )
+        : [el("option", { value: "" }, "No sites captured yet")])
+    );
+    select.value = selectedSite || "";
+    select.disabled = !sites.length;
+  }
+}
+document.querySelectorAll(".site-select").forEach((select) =>
+  select.addEventListener("change", () => {
+    selectedSite = select.value;
+    render();
+  })
+);
+
+function renderFiles() {
+  const siteUrl = selectedSite;
+  const specs = data.specFiles.filter((s) => s.siteUrl === siteUrl).sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
+  $("#filesList").replaceChildren(
+    specs.length
+      ? el("ul", { class: "list" }, specs.map(specItem))
+      : el("div", { class: "empty" }, siteUrl ? "No spec files for this site." : "No spec files yet. Capture a page from the Capture tab, or run Autopilot.")
+  );
 }
 
 function renderHandoff() {
-  const siteUrl = $("#handoffSite").value;
+  const siteUrl = selectedSite;
   const job = siteUrl ? data.jobs[`handoff:${siteUrl}`] : null;
   const count = data.specFiles.filter((s) => s.siteUrl === siteUrl).length;
   const btn = $("#generateBtn");
-  btn.disabled = !siteUrl || job?.status === "running";
+  btn.disabled = !siteUrl || !count || job?.status === "running";
   $("#downloadAllBtn").classList.toggle("hidden", !data.handoffFiles.some((f) => f.siteUrl === siteUrl && !f.raw));
   btn.textContent =
     job?.status === "running" ? "Generating handoff…" : siteUrl ? `Generate Handoff for ${host(siteUrl)} (${count} page${count === 1 ? "" : "s"})` : "Generate Handoff";
@@ -312,7 +321,7 @@ function renderHandoff() {
 }
 
 function renderBuild() {
-  const siteUrl = $("#buildSite").value;
+  const siteUrl = selectedSite;
   const steps = data.handoffFiles.filter((f) => f.siteUrl === siteUrl && f.fileType === "step").sort((a, b) => a.stepNumber - b.stepNumber);
   const progress = data.buildProgress[siteUrl] || { currentStep: steps[0]?.stepNumber ?? 0, completedSteps: [] };
   const done = new Set(progress.completedSteps);
@@ -499,7 +508,7 @@ $("#captureBtn").addEventListener("click", async () => {
 });
 
 $("#generateBtn").addEventListener("click", async () => {
-  const siteUrl = $("#handoffSite").value;
+  const siteUrl = selectedSite;
   if (!siteUrl) return;
   data.jobs[`handoff:${siteUrl}`] = { status: "running", message: "Preparing specs…", startedAt: Date.now() };
   render();
@@ -512,9 +521,8 @@ $("#generateBtn").addEventListener("click", async () => {
   }
 });
 
-$("#handoffSite").addEventListener("change", renderHandoff);
 $("#downloadAllBtn").addEventListener("click", async () => {
-  const siteUrl = $("#handoffSite").value;
+  const siteUrl = selectedSite;
   const files = data.handoffFiles.filter((f) => f.siteUrl === siteUrl && !f.raw);
   // Chrome may ask once to allow multiple downloads from the extension.
   for (const f of files) {
@@ -523,10 +531,9 @@ $("#downloadAllBtn").addEventListener("click", async () => {
   }
   toast(`Downloaded ${files.length} file(s)`);
 });
-$("#buildSite").addEventListener("change", renderBuild);
 
 $("#buildBtn").addEventListener("click", async () => {
-  const siteUrl = $("#buildSite").value;
+  const siteUrl = selectedSite;
   if (!siteUrl) return;
   const steps = data.handoffFiles.filter((f) => f.siteUrl === siteUrl && f.fileType === "step").sort((a, b) => a.stepNumber - b.stepNumber);
   const progress = data.buildProgress[siteUrl];
@@ -541,7 +548,7 @@ $("#buildBtn").addEventListener("click", async () => {
 });
 
 $("#resetBuildBtn").addEventListener("click", async () => {
-  const siteUrl = $("#buildSite").value;
+  const siteUrl = selectedSite;
   if (siteUrl && confirm("Mark all steps as not done?")) await send("resetBuild", { siteUrl });
 });
 
