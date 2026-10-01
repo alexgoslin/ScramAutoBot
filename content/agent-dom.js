@@ -89,7 +89,7 @@
     return d;
   }
 
-  function snapshot({ maxElements = 250, maxText = 4000 } = {}) {
+  function snapshot({ maxElements = 250, maxText = 4000, pointer = false } = {}) {
     const seen = new Set();
     const elements = [];
     for (const el of document.querySelectorAll(INTERACTIVE)) {
@@ -100,6 +100,20 @@
       if (parent && seen.has(parent) && labelOf(parent) === labelOf(el)) continue;
       seen.add(el);
       elements.push(describe(el));
+    }
+    // Optionally also div/span "buttons" (pointer cursor, short text) that aren't real controls —
+    // apps like Scram build toggles, cards and tabs that way.
+    if (pointer) {
+      for (const el of document.body.querySelectorAll("div,span,li,p,h1,h2,h3,h4,label,svg")) {
+        if (elements.length >= maxElements) break;
+        if (seen.has(el) || el.closest(INTERACTIVE) || !isVisible(el) || !inViewportish(el)) continue;
+        if (getComputedStyle(el).cursor !== "pointer") continue;
+        if (el.parentElement && getComputedStyle(el.parentElement).cursor === "pointer") continue; // outermost only
+        const text = labelOf(el);
+        if (!text || text.length > 60) continue;
+        seen.add(el);
+        elements.push({ ...describe(el), role: el.getAttribute("role") || "clickable" });
+      }
     }
     const layers = Array.from(document.querySelectorAll(LAYERS)).filter(isVisible).map((l) => ({
       role: l.getAttribute("role") || l.tagName.toLowerCase(),
