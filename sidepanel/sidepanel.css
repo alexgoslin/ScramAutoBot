@@ -133,6 +133,12 @@ select {
   border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
 .ap-phase { font-weight: 600; }
+.ap-cost {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; background: var(--code-bg);
+}
+.ap-cost > div { display: grid; gap: 2px; min-width: 0; }
+.ap-cost strong { font-size: 15px; font-variant-numeric: tabular-nums; }
 .ap-message { font-size: 12px; word-break: break-word; }
 .badge.running { background: var(--accent); color: var(--accent-text); }
 .badge.paused, .badge.error { background: var(--warn-bg); color: var(--warn); }

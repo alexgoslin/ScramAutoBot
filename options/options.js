@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, getSettings, getLessons, addLessons, removeLesson } from "../lib/storage.js";
 import { callClaude } from "../lib/claude.js";
+import { totalCost, formatCost } from "../lib/pricing.js";
 
 const $ = (sel) => document.querySelector(sel);
 const BUNDLED = { specPrompt: "site-screen-spec-extractor.md", handoffPrompt: "scram-phased-handoff-splitter.md" };
@@ -115,10 +116,10 @@ $("#clearData").addEventListener("click", async () => {
 
 async function showUsage() {
   const { usage = { input: 0, output: 0, calls: 0 } } = await chrome.storage.local.get("usage");
-  $("#usageTotal").textContent = `All-time Claude usage from this extension: ${usage.calls} calls, ${usage.input.toLocaleString()} input / ${usage.output.toLocaleString()} output tokens.`;
+  $("#usageTotal").textContent = `All-time Claude usage from this extension: ${usage.calls} calls, ${usage.input.toLocaleString()} input / ${usage.output.toLocaleString()} output tokens — about ${usage.costEstimated ? "≈" : ""}${formatCost(totalCost(usage))} at list prices.`;
 }
 $("#resetUsage").addEventListener("click", async () => {
-  await chrome.storage.local.set({ usage: { input: 0, output: 0, calls: 0 } });
+  await chrome.storage.local.set({ usage: { input: 0, output: 0, calls: 0, cost: 0 } });
   showUsage();
 });
 chrome.storage.onChanged.addListener((changes) => changes.usage && showUsage());

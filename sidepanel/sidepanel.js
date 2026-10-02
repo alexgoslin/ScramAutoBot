@@ -1,4 +1,5 @@
 import { handoffFileName } from "../lib/storage.js";
+import { totalCost, formatCost } from "../lib/pricing.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -408,6 +409,10 @@ function renderAutopilot() {
   $("#apInstructionsLabel").classList.toggle("hidden", !!active);
   $("#apIntro").classList.toggle("hidden", !!ap);
   $("#apRunInstructions").textContent = ap?.instructions ? `Your instructions: ${ap.instructions}` : "";
+  // Cost: this run (since it started) and everything this extension has spent.
+  const spent = totalCost(data.usage);
+  $("#apCostTotal").textContent = `${data.usage?.costEstimated ? "≈" : ""}${formatCost(spent)}`;
+  $("#apCostRun").textContent = ap ? formatCost(Math.max(0, spent - totalCost(ap.usageAtStart || data.usage))) : "—";
   $("#apStatus").classList.toggle("hidden", !ap);
   if (!ap) return;
 
