@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scram skills test</title>
+  <link rel="stylesheet" href="../options/options.css" />
+  <style>
+    .log { white-space: pre-wrap; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-height: 60px; max-height: 320px; overflow: auto; overflow-wrap: anywhere; }
+    .big { font-size: 15px; font-weight: 600; }
+    .ok { color: #047857; }
+    .bad { color: var(--err); }
+    select { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+    .modes, .skills { display: grid; gap: 8px; }
+    .modes label, .skills label { font-weight: 400; display: flex; gap: 8px; align-items: flex-start; }
+    .results { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+    .results li { display: grid; grid-template-columns: 28px 1fr; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+    .results li .icon { font-size: 16px; }
+    .results li .detail { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .results li.pass { border-color: #04785755; }
+    .results li.fail { border-color: var(--err); }
+    .results li.running { border-color: var(--accent, #4f46e5); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Scram skills test</h1>
+    <p class="hint">Watch the extension do, live in Scram, the things it has learned: opening Scram in its own tab, creating and renaming a project,
+      switching to Run mode, changing the preview size, using the AI chat box, attaching a file, and operating the editor by itself.
+      Each skill is checked afterwards and marked ✅ or ❌. Nothing is ever sent to Scram's AI, so it doesn't use Scram credits.</p>
+
+    <section>
+      <h2>1. Which project?</h2>
+      <div class="modes">
+        <label><input type="radio" name="mode" value="create" checked />
+          <span><b>Create a new test project</b> (recommended) — opens Scram in its own tab, clicks “Create new project”, and names it “AutoBot test <i>time</i>”. Delete it afterwards if you like.</span></label>
+        <label><input type="radio" name="mode" value="existing" />
+          <span><b>Use a project I already have open</b> — runs the skills in that project. Renaming changes its name to a test name and then back again.</span></label>
+      </div>
+      <div class="row" id="tabRow">
+        <select id="tab"></select>
+        <button id="refresh" type="button">↻</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Skills to test</h2>
+      <div id="skills" class="skills"></div>
+      <div class="row">
+        <button id="run" class="primary" type="button">▶ Run skills test</button>
+        <button id="stop" type="button">Stop</button>
+      </div>
+      <p class="hint">Also see the <a href="chat-test.html">chat test</a> (approving plans and answering questions — that one does use Scram credits) and the <a href="attach-test.html">file upload test</a>.</p>
+    </section>
+
+    <section>
+      <h2>3. Results</h2>
+      <div id="status" class="big"></div>
+      <ul id="results" class="results"></ul>
+      <h3>Log</h3>
+      <div id="log" class="log">(each action appears here as it happens — watch the Scram tab too)</div>
+      <div class="row"><button id="copy" type="button">Copy results</button></div>
+    </section>
+  </main>
+  <script src="skills-test.js" type="module"></script>
+</body>
+</html>
