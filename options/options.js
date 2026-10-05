@@ -15,6 +15,9 @@ async function load() {
   $("#autoSubmit").checked = settings.autoSubmit;
   for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds", "maxRoundsPerStep"]) $(`#${k}`).value = settings[k];
   for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus", "scramSendAsFile"]) $(`#${k}`).checked = settings[k];
+  $("#slimContext").checked = settings.slimContext !== false;
+  $("#stepSize").value = settings.stepSize || "small";
+  $("#maxStepChars").value = settings.maxStepChars;
   $("#specPrompt").value = promptOverrides.specExtractor || "";
   $("#handoffPrompt").value = promptOverrides.handoffSplitter || "";
 }
@@ -42,6 +45,9 @@ function readSettings() {
     scramSendAsFile: $("#scramSendAsFile").checked,
     scramIdleSeconds: int("#scramIdleSeconds", DEFAULT_SETTINGS.scramIdleSeconds),
     maxRoundsPerStep: int("#maxRoundsPerStep", DEFAULT_SETTINGS.maxRoundsPerStep),
+    slimContext: $("#slimContext").checked,
+    stepSize: $("#stepSize").value === "standard" ? "standard" : "small",
+    maxStepChars: Math.max(2000, int("#maxStepChars", DEFAULT_SETTINGS.maxStepChars)),
   };
 }
 

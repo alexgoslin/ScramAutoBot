@@ -284,6 +284,13 @@ function renderFiles() {
   );
 }
 
+// "4.2k chars (~1.1k tokens) · 5 checks" — tokens are roughly chars / 4.
+function sizeLabel(f) {
+  const k = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+  const items = f.fileType === "step" ? f.checklistItems ?? (f.content.match(/^\s*[-*]\s*\[[ xX]\]/gm) || []).length : null;
+  return `${k(f.content.length)} chars (~${k(Math.round(f.content.length / 4))} tokens)${items != null ? ` · ${items} check${items === 1 ? "" : "s"}` : ""}`;
+}
+
 function renderHandoff() {
   const siteUrl = selectedSite;
   const job = siteUrl ? data.jobs[`handoff:${siteUrl}`] : null;
@@ -311,7 +318,7 @@ function renderHandoff() {
               "div",
               { class: "main", onclick: () => openReader(f.fileType === "step" ? `Step ${f.stepNumber}: ${f.title}` : f.title, `${host(f.siteUrl)} · ${fmtDate(f.createdAt)}`, f.content) },
               el("div", { class: "title" }, f.title),
-              el("div", { class: "sub" }, `${f.content.length.toLocaleString()} chars`)
+              el("div", { class: "sub" }, sizeLabel(f))
             ),
             el("button", { class: "small", onclick: () => copyText(f.content) }, "Copy"),
             el("button", { class: "small ghost", title: `Download ${handoffFileName(f)}`, onclick: () => downloadMd(handoffFileName(f), f.content) }, "⬇ .md")

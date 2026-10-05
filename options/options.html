@@ -92,6 +92,26 @@
     </section>
 
     <section>
+      <h2>Step files</h2>
+      <p class="hint">How the build steps given to Scram's AI are written. Applies the next time you generate a handoff.</p>
+      <label class="check"><input id="slimContext" type="checkbox" /> Slim context — after Setup, each step gets a short project summary plus only the tables, screens and styles it uses (the rest already lives in the Scram project). Off = repeat the full context in every step.</label>
+      <div class="grid">
+        <div>
+          <label for="stepSize">Step size</label>
+          <select id="stepSize">
+            <option value="small">Small — up to 6 checklist items per step (more, easier steps)</option>
+            <option value="standard">Standard — up to 10 checklist items per step</option>
+          </select>
+        </div>
+        <div>
+          <label for="maxStepChars">Split steps longer than (characters)</label>
+          <input id="maxStepChars" type="number" min="2000" step="500" />
+        </div>
+      </div>
+      <p class="hint">Steps over the size or checklist limit are split automatically into smaller steps when the handoff is generated. If Scram's AI still struggles with a step during the build, Autopilot hands it that step in two halves.</p>
+    </section>
+
+    <section>
       <h2>What it has learned about Scram's AI</h2>
       <p class="hint">
         When Scram's AI says it can't do something, Autopilot writes a lesson here and never asks for that again.
