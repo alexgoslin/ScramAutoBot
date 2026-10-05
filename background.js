@@ -5,6 +5,7 @@ import * as autopilot from "./lib/autopilot.js";
 import * as scramAttach from "./lib/scram-attach.js";
 import * as chatTest from "./lib/scram-chat-test.js";
 import * as skillsTest from "./lib/skills-test.js";
+import * as scramExplorer from "./lib/scram-explorer.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
@@ -213,6 +214,8 @@ const handlers = {
   chatTestStop: () => chatTest.stop(),
   skillsTestStart: ({ mode, tabId, skills }) => skillsTest.start({ mode, tabId, skills }),
   skillsTestStop: () => skillsTest.stop(),
+  scramExploreStart: ({ mode, tabId, maxActions }) => scramExplorer.start({ mode, tabId, maxActions }),
+  scramExploreStop: () => scramExplorer.stop(),
 
   // Autopilot
   autopilotStart: ({ tabId, instructions }) => autopilot.start({ tabId, instructions }),

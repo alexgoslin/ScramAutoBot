@@ -454,11 +454,10 @@
   // Expand collapsed content in the chat (e.g. Scram's plan card "Read more") so the whole
   // plan/question can be read. Only clicks small, clearly "expand"-type controls.
   function expandCollapsed() {
-    const inputId = findChatInput();
-    const input = inputId ? byId(inputId) : null;
-    let panel = input;
-    for (let i = 0; panel && i < 10 && panel.parentElement; i++) panel = panel.parentElement;
-    const scope = panel || document;
+    // Only inside the AI chat panel — never e.g. the editor toolbar's "More" (that opens the
+    // project overview and hides the chat).
+    const scope = chatPanel();
+    if (!scope) return 0;
     let n = 0;
     for (const el of deepAll("a,button,[role=button],span,div", scope)) {
       if (!isVisible(el) || el.children.length > 2) continue;
@@ -723,6 +722,32 @@
     return { id: idOf(run), label: labelOf(run), editId: edit ? idOf(edit) : null, active: !edit || r === e ? (r >= 10 ? true : null) : r > e };
   }
 
+  // Where the AI chat panel is (page coordinates, like describe().box), so explorers can avoid it.
+  function chatPanelBox() {
+    const p = chatPanel();
+    if (!p) return null;
+    const r = p.getBoundingClientRect();
+    return { left: r.left, top: r.top + scrollY, right: r.right, bottom: r.bottom + scrollY };
+  }
+
+  // The editor's frontend tab (top left, just before "More" — named after the frontend, e.g.
+  // "Frontend 1" or "Tasklane Web"): clicking it returns to the page view with the AI chat.
+  function frontendTab() {
+    const more = findText("^more$", { maxLen: 10 }).map((d) => byId(d.id)).find((el) => el && !el.closest(LAYERS));
+    if (!more) return null;
+    const mr = more.getBoundingClientRect();
+    const midY = mr.top + mr.height / 2;
+    const candidates = [...document.querySelectorAll(INTERACTIVE + ",div,span,a")]
+      .filter((el) => isVisible(el) && el !== more && !el.contains(more) && !more.contains(el))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ el, r }) => r.right <= mr.left + 2 && Math.abs(r.top + r.height / 2 - midY) < 14 && clean(el.innerText).length > 1 && clean(el.innerText).length < 40 && !/^beta$/i.test(clean(el.innerText)))
+      .filter(({ el }) => el.matches(INTERACTIVE) || pointer(el));
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => b.r.right - a.r.right); // the one right before "More"
+    const target = clickableFor(candidates[0].el);
+    return { ...describe(target), text: clean(target.innerText) };
+  }
+
   // A "Back" control that leaves a sub-view of the editor (e.g. a workflow canvas, where the
   // Edit/Run toggle isn't shown). Never one inside the AI chat panel.
   function backTarget() {
@@ -785,7 +810,7 @@
   }
 
   window.__sabDom = {
-    findText, modeToggle, closePanel, projectNameTarget, typeActive, backTarget,
+    findText, modeToggle, closePanel, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox,
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,

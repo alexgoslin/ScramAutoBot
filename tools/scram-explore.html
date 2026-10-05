@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore Scram</title>
+  <link rel="stylesheet" href="../options/options.css" />
+  <style>
+    .log, .guide { white-space: pre-wrap; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-height: 60px; max-height: 420px; overflow: auto; overflow-wrap: anywhere; }
+    .big { font-size: 15px; font-weight: 600; }
+    .ok { color: #047857; }
+    .bad { color: var(--err); }
+    select { width: 100%; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+    .modes { display: grid; gap: 8px; }
+    .modes label { font-weight: 400; display: flex; gap: 8px; align-items: flex-start; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Explore Scram</h1>
+    <p class="hint">Claude clicks around a Scram project editor by itself — opening every tab, panel, menu, view and dialog it can find, and working out how to get back from each — then writes a <b>navigation guide</b>.
+      The guide is saved and used automatically by Autopilot whenever it has to find its way around Scram. Copy it with the button below if you want to share it.
+      It never publishes, deletes, shares, invites, touches billing, types anything, or uses Scram's AI chat, so it costs no Scram credits (it does use some Claude credit: roughly one call per action).</p>
+
+    <section>
+      <h2>1. Which project?</h2>
+      <div class="modes">
+        <label><input type="radio" name="mode" value="create" checked /> <span><b>Create a new test project</b> (recommended) — named “AutoBot explorer <i>time</i>”.</span></label>
+        <label><input type="radio" name="mode" value="existing" /> <span><b>Use a project I already have open</b> — it only looks around, but a throwaway project is safer.</span></label>
+      </div>
+      <div class="row" id="tabRow"><select id="tab"></select><button id="refresh" type="button">↻</button></div>
+    </section>
+
+    <section>
+      <h2>2. How thorough?</h2>
+      <div class="row">
+        <select id="actions" style="width:auto">
+          <option value="15">Quick — 15 actions</option>
+          <option value="30" selected>Normal — 30 actions</option>
+          <option value="60">Thorough — 60 actions</option>
+        </select>
+        <button id="run" class="primary" type="button">▶ Explore Scram</button>
+        <button id="stop" type="button">Stop</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. What it found</h2>
+      <div id="status" class="big"></div>
+      <h3>Navigation guide <span class="hint" id="guideMeta"></span></h3>
+      <div id="guide" class="guide">(nothing yet)</div>
+      <div class="row">
+        <button id="copy" type="button">Copy guide + notes</button>
+        <button id="clear" type="button">Forget the saved guide</button>
+      </div>
+      <h3>Live log</h3>
+      <div id="log" class="log">(each click appears here — watch the Scram tab too)</div>
+    </section>
+  </main>
+  <script src="scram-explore.js" type="module"></script>
+</body>
+</html>
