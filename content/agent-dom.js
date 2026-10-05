@@ -723,6 +723,21 @@
     return { id: idOf(run), label: labelOf(run), editId: edit ? idOf(edit) : null, active: !edit || r === e ? (r >= 10 ? true : null) : r > e };
   }
 
+  // A "Back" control that leaves a sub-view of the editor (e.g. a workflow canvas, where the
+  // Edit/Run toggle isn't shown). Never one inside the AI chat panel.
+  function backTarget() {
+    const panel = chatPanel();
+    const outsideChat = (el) => el && !(panel && panel.contains(el)) && !el.closest(OUR_UI);
+    const byText = findText("^(?:‹|<|←|〈)?\\s*back$", { maxLen: 8 }).map((d) => byId(d.id));
+    const byLabel = [...document.querySelectorAll("[aria-label],[title]")].filter(
+      (el) => isVisible(el) && /^(go )?back$/i.test((el.getAttribute("aria-label") || el.getAttribute("title") || "").trim())
+    );
+    const hits = [...byText, ...byLabel].filter(outsideChat);
+    if (!hits.length) return null;
+    hits.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top || a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+    return { ...describe(hits[0]), text: clean(hits[0].innerText) || labelOf(hits[0]) };
+  }
+
   // Close a side panel with this title (e.g. Scram's "Plans" panel, which hides the Edit/Run toggle).
   function closePanel(titlePattern) {
     const title = findText(titlePattern, { maxLen: 20 }).map((d) => byId(d.id)).find(Boolean);
@@ -770,7 +785,7 @@
   }
 
   window.__sabDom = {
-    findText, modeToggle, closePanel, projectNameTarget, typeActive,
+    findText, modeToggle, closePanel, projectNameTarget, typeActive, backTarget,
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,
