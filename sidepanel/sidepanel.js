@@ -423,6 +423,10 @@ function renderAutopilot() {
   $("#apStatus").classList.toggle("hidden", !ap);
   if (!ap) return;
 
+  const sc = ap.scope;
+  $("#apScope").textContent = sc?.core?.length
+    ? `🎯 Cloning the core: ${sc.core.map((f) => f.name).join(", ")}${sc.skip?.length ? ` · skipping: ${sc.skip.map((f) => f.name).join(", ")}` : ""}`
+    : "";
   $("#apPhase").textContent = `${host(ap.siteUrl)} — ${PHASES[ap.phase] || ap.phase}`;
   $("#apMessage").textContent = ap.status === "paused" || ap.status === "error" ? `⚠️ ${ap.pauseReason || ap.message}` : ap.message || "";
   const ex = ap.explore || {};
