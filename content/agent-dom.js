@@ -763,21 +763,59 @@
     return { ...describe(hits[0]), text: clean(hits[0].innerText) || labelOf(hits[0]) };
   }
 
+  // Right edge of the editor's left column (AI chat + Page Structure). Falls back to 35% of the
+  // viewport when the chat isn't found.
+  function leftColumnRight() {
+    const p = chatPanel();
+    return p ? p.getBoundingClientRect().right : innerWidth * 0.35;
+  }
+
+  // The AI chat section was collapsed (its header's chevron): find the control that opens it again.
+  // Prefer an explicit aria-expanded="false" toggle in the left column; otherwise the right-most
+  // small icon on the top header row of the left column (where the chat title and its ^/⌄ sit).
+  function chatExpandTarget() {
+    const leftEdge = innerWidth * 0.4;
+    const inLeft = (r) => r.right <= leftEdge && r.top > 30 && r.width > 0;
+    const toggles = [...document.querySelectorAll("[aria-expanded='false']")]
+      .filter((el) => isVisible(el) && inLeft(el.getBoundingClientRect()))
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+    if (toggles.length) return { ...describe(toggles[0]), how: "aria-expanded" };
+    const icons = [...document.querySelectorAll("button,[role=button],svg,span,div")]
+      .map((el) => (el.tagName.toLowerCase() === "svg" ? el.closest("button,[role=button]") || el.parentElement : el))
+      .filter((el, i, arr) => el && arr.indexOf(el) === i && isVisible(el) && (el.matches("button,[role=button]") || pointer(el)))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ el, r }) => inLeft(r) && r.width <= 40 && r.height <= 40 && clean(el.innerText).length <= 1);
+    if (!icons.length) return null;
+    const topRow = Math.min(...icons.map((i) => i.r.top + i.r.height / 2));
+    const row = icons.filter((i) => Math.abs(i.r.top + i.r.height / 2 - topRow) < 12).sort((a, b) => b.r.right - a.r.right);
+    return { ...describe(row[0].el), how: "header chevron" };
+  }
+
   // The close control of a side panel with this title (e.g. Scram's "Plans" panel, which can
   // cover the Edit/Run toggle). Its × is often an unlabeled icon, so besides "Close"/"×" labels
   // we take the right-most small clickable in the panel's header row.
   function panelCloseTarget(titlePattern) {
-    const title = findText(titlePattern, { maxLen: 20 }).map((d) => byId(d.id)).find((el) => el && !el.closest(OUR_UI));
+    // Only a real panel heading (big text, outside the AI chat column) — not e.g. a "Plans"
+    // tooltip on the chat header's icon, whose row also holds the chat's collapse chevron.
+    const left = leftColumnRight();
+    const title = findText(titlePattern, { maxLen: 20 })
+      .map((d) => byId(d.id))
+      .find((el) => {
+        if (!el || el.closest(OUR_UI)) return false;
+        const r = el.getBoundingClientRect();
+        return parseFloat(getComputedStyle(el).fontSize) >= 15 && r.left >= left - 4 && r.height >= 14;
+      });
     if (!title) return null;
     const tr = title.getBoundingClientRect();
     for (let box = title.parentElement, i = 0; box && box !== document.body && i < 8; box = box.parentElement, i++) {
       const br = box.getBoundingClientRect();
-      if (br.width < 200) continue;
+      if (br.width < 300 || br.left < left - 4) continue;
       const clickables = [...box.querySelectorAll("button,[role=button],[aria-label],[title],svg,span,div,a")]
         .filter((el) => isVisible(el) && el !== title && !el.contains(title))
         .map((el) => (el.tagName.toLowerCase() === "svg" || el.closest("svg") ? el.closest("button,[role=button]") || el.closest("svg").parentElement : el))
         .filter((el, idx, arr) => el && arr.indexOf(el) === idx && box.contains(el))
-        .filter((el) => el.matches("button,[role=button]") || pointer(el));
+        .filter((el) => el.matches("button,[role=button]") || pointer(el))
+        .filter((el) => !el.hasAttribute("aria-expanded") && !/collapse|expand|minimi[sz]e/i.test(`${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`));
       const labelled = clickables.find((el) => /^(close|dismiss|close panel|hide)$/i.test((el.getAttribute("aria-label") || el.getAttribute("title") || "").trim()) || /^[×✕✖xX]$/.test(clean(el.innerText)));
       if (labelled) return describe(labelled);
       // An icon-sized control on the title's row, right of it, furthest right.
@@ -828,7 +866,7 @@
   }
 
   window.__sabDom = {
-    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox,
+    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget,
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,
