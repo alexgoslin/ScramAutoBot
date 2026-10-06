@@ -478,6 +478,7 @@ function renderQA(ap) {
         { class: "qa-q", "data-id": q.id },
         el("legend", {}, q.question),
         q.why ? el("div", { class: "muted small-text" }, q.why) : null,
+        q.from ? el("div", { class: "qa-from small-text" }, `📍 Noticed while crawling: ${q.from}`) : null,
         ...q.options.map((o, i) =>
           el("label", { class: "qa-opt" }, el("input", { type: "radio", name: `qa-${q.id}`, value: o, ...(i === q.recommended ? { checked: "checked" } : {}) }), ` ${o}${i === q.recommended ? " ⭐" : ""}`)
         ),
