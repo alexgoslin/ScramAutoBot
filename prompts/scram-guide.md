@@ -350,9 +350,10 @@ expiry date (1 day to 3 years).
 
 #### WORKFLOWS (Server-side)
 
-Backend workflows that run independently of any page or user action — things
-like scheduled tasks or webhook handlers. Separate from the page-level workflows
-attached to buttons and forms.
+Backend workflows that run on the server — reusable logic and webhook handlers.
+Separate from the page-level workflows attached to buttons and forms. Note: Scram
+has no scheduled (CRON) jobs and no database triggers, so a server workflow only
+runs when something calls it.
 
 ---
 
