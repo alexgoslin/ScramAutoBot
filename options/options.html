@@ -49,6 +49,7 @@
         <option value="full">Full interaction — click everything (likes, follows, toggles… undone afterwards), type into text boxes</option>
         <option value="safe">Safe — read-only: menus, tabs, modals, links and search only</option>
       </select>
+      <label class="check"><input id="askQuestions" type="checkbox" /> Ask me questions before planning the build — after researching, Claude asks how you want unclear parts built in Scram (with recommended answers), and waits for you</label>
       <label class="check"><input id="coreFeaturesOnly" type="checkbox" /> Core features only — before crawling, Claude decides the site's core features (what most users do there) and what's niche or rarely used; Autopilot then crawls, specs and builds only the core</label>
       <label class="check"><input id="productFocus" type="checkbox" /> Product focus — crawl the product's features (posts, feeds, replies, media, profiles, messages…) and skip business, legal, marketing, help, ads, premium and developer pages and other subdomains</label>
       <p class="hint">In both modes Autopilot never logs out, deletes or deactivates, pays or upgrades, or posts/sends/invites/reports — and never submits what it types.</p>

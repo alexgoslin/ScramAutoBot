@@ -54,6 +54,15 @@
             <button id="apReset" class="small ghost">Clear</button>
             <button id="apLogToggle" class="small ghost">Show log</button>
           </div>
+          <div id="apQA" class="ap-qa hidden">
+            <div class="label">Questions before planning the build</div>
+            <p class="muted small-text">Pick an answer (⭐ = recommended) or type your own. Anything you leave gets the recommended answer.</p>
+            <div id="apQAList"></div>
+            <div class="row">
+              <button id="apQASubmit" class="primary small" type="button">Submit answers</button>
+              <button id="apQARecommended" class="small" type="button">Use all recommended</button>
+            </div>
+          </div>
           <ol id="apLog" class="ap-log hidden"></ol>
           <form id="apChat" class="ap-chat hidden">
             <input id="apChatInput" type="text" autocomplete="off" placeholder="Message Autopilot… e.g. tell Scram to use blue buttons" />

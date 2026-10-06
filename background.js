@@ -222,6 +222,7 @@ const handlers = {
   autopilotStop: () => autopilot.stop(),
   autopilotResume: () => autopilot.resume(),
   autopilotReset: () => autopilot.reset(),
+  autopilotAnswer: ({ answers }) => autopilot.answerQuestions(answers),
   autopilotNote: ({ text }) => autopilot.addNote(text),
 
 };

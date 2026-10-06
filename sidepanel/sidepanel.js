@@ -394,17 +394,18 @@ function renderBuild() {
 // ---------------------------------------------------------------------------- autopilot
 
 const PHASES = {
-  explore: "1/4 · Exploring the site",
-  handoff: "2/4 · Generating build steps",
-  "scram-setup": "3/4 · Setting up Scram",
-  build: "4/4 · Building in Scram",
+  explore: "1/5 · Exploring the site",
+  qa: "2/5 · Questions for you",
+  handoff: "3/5 · Generating build steps",
+  "scram-setup": "4/5 · Setting up Scram",
+  build: "5/5 · Building in Scram",
   finished: "Finished",
 };
 
 function renderAutopilot() {
   const ap = data.autopilot;
   const siteUrl = siteUrlOf(currentTab?.url || "");
-  const active = ap && ["running", "paused"].includes(ap.status);
+  const active = ap && ["running", "paused", "waiting"].includes(ap.status);
   const badge = $("#apBadge");
   badge.className = `badge ${ap?.status || ""}`;
   badge.textContent = ap?.status || "idle";
@@ -440,6 +441,7 @@ function renderAutopilot() {
   if (b.totalSteps) parts.push(`step ${Math.min(b.step + 1, b.totalSteps)} of ${b.totalSteps}${b.rounds ? ` (round ${b.rounds})` : ""}`);
   $("#apCounters").textContent = `${parts.join(" · ")} · ${mins} min${usage}`;
 
+  renderQA(ap);
   $("#apStop").classList.toggle("hidden", !active);
   $("#apResume").classList.toggle("hidden", !["paused", "stopped", "error"].includes(ap.status));
   $("#apReset").classList.toggle("hidden", !!active);
@@ -456,6 +458,44 @@ function renderAutopilot() {
   // The chat box sits under the log and works while Autopilot is running or paused.
   $("#apChat").classList.toggle("hidden", log.classList.contains("hidden") || !active);
 }
+
+// ---- Q&A form (built once per set of questions, so choices survive re-renders)
+let qaKey = null;
+function renderQA(ap) {
+  const waiting = ap?.status === "waiting" && ap.phase === "qa" && ap.qa?.questions?.length;
+  $("#apQA").classList.toggle("hidden", !waiting);
+  if (!waiting) {
+    qaKey = null;
+    return;
+  }
+  const key = `${ap.startedAt}:${ap.qa.askedAt}`;
+  if (key === qaKey) return;
+  qaKey = key;
+  $("#apQAList").replaceChildren(
+    ...ap.qa.questions.map((q) =>
+      el(
+        "fieldset",
+        { class: "qa-q", "data-id": q.id },
+        el("legend", {}, q.question),
+        q.why ? el("div", { class: "muted small-text" }, q.why) : null,
+        ...q.options.map((o, i) =>
+          el("label", { class: "qa-opt" }, el("input", { type: "radio", name: `qa-${q.id}`, value: o, ...(i === q.recommended ? { checked: "checked" } : {}) }), ` ${o}${i === q.recommended ? " ⭐" : ""}`)
+        ),
+        el("input", { type: "text", class: "qa-other", placeholder: "Or type your own answer…" })
+      )
+    )
+  );
+}
+function collectAnswers() {
+  const answers = {};
+  for (const fs of document.querySelectorAll("#apQAList .qa-q")) {
+    const typed = fs.querySelector(".qa-other").value.trim();
+    answers[fs.dataset.id] = typed || fs.querySelector("input[type=radio]:checked")?.value || "";
+  }
+  return answers;
+}
+$("#apQASubmit").addEventListener("click", () => send("autopilotAnswer", { answers: collectAnswers() }).catch((e) => toast(e.message)));
+$("#apQARecommended").addEventListener("click", () => send("autopilotAnswer", { answers: {} }).catch((e) => toast(e.message)));
 
 $("#apStart").addEventListener("click", async () => {
   if (!currentTab) return;

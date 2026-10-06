@@ -142,6 +142,12 @@ select {
 .ap-message { font-size: 12px; word-break: break-word; }
 .badge.running { background: var(--accent); color: var(--accent-text); }
 .badge.paused, .badge.error { background: var(--warn-bg); color: var(--warn); }
+.badge.waiting { background: var(--accent); color: var(--accent-text); }
+.ap-qa { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; }
+.qa-q { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 8px; padding: 8px 10px; display: grid; gap: 4px; min-width: 0; }
+.qa-q legend { font-weight: 600; padding: 0 4px; }
+.qa-opt { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; }
+.qa-other { font: inherit; font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 100%; }
 .badge.done { background: var(--ok); color: #fff; }
 .ap-log {
   margin: 0; padding: 6px 6px 6px 26px; max-height: 260px; overflow: auto;
