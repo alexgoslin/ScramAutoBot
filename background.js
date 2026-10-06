@@ -92,7 +92,11 @@ async function startBuild(siteUrl) {
 async function switchToRunMode(tabId) {
   let t = await dom(tabId, "modeToggle");
   if (!t || (await dom(tabId, "centerOf", { id: t.id }))?.covered) {
-    if (await dom(tabId, "closePanel", "^plans$")) await new Promise((r) => setTimeout(r, 1200));
+    const x = await dom(tabId, "panelCloseTarget", "^plans$");
+    if (x) {
+      await scramAttach.realClick(tabId, { id: x.id, label: x.label }).catch(() => {});
+      await new Promise((r) => setTimeout(r, 1200));
+    }
     t = await dom(tabId, "modeToggle");
   }
   if (!t || t.active === true) return;

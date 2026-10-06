@@ -763,20 +763,38 @@
     return { ...describe(hits[0]), text: clean(hits[0].innerText) || labelOf(hits[0]) };
   }
 
-  // Close a side panel with this title (e.g. Scram's "Plans" panel, which hides the Edit/Run toggle).
-  function closePanel(titlePattern) {
-    const title = findText(titlePattern, { maxLen: 20 }).map((d) => byId(d.id)).find(Boolean);
-    if (!title) return false;
-    for (let box = title.parentElement, i = 0; box && box !== document.body && i < 6; box = box.parentElement, i++) {
-      const close = [...box.querySelectorAll("button,[role=button],[aria-label],span,div")].find(
-        (el) => isVisible(el) && (/^(close|dismiss)$/i.test(el.getAttribute("aria-label") || "") || /^[×✕✖x]$/i.test(clean(el.innerText)))
-      );
-      if (close) {
-        close.click();
-        return true;
-      }
+  // The close control of a side panel with this title (e.g. Scram's "Plans" panel, which can
+  // cover the Edit/Run toggle). Its × is often an unlabeled icon, so besides "Close"/"×" labels
+  // we take the right-most small clickable in the panel's header row.
+  function panelCloseTarget(titlePattern) {
+    const title = findText(titlePattern, { maxLen: 20 }).map((d) => byId(d.id)).find((el) => el && !el.closest(OUR_UI));
+    if (!title) return null;
+    const tr = title.getBoundingClientRect();
+    for (let box = title.parentElement, i = 0; box && box !== document.body && i < 8; box = box.parentElement, i++) {
+      const br = box.getBoundingClientRect();
+      if (br.width < 200) continue;
+      const clickables = [...box.querySelectorAll("button,[role=button],[aria-label],[title],svg,span,div,a")]
+        .filter((el) => isVisible(el) && el !== title && !el.contains(title))
+        .map((el) => (el.tagName.toLowerCase() === "svg" || el.closest("svg") ? el.closest("button,[role=button]") || el.closest("svg").parentElement : el))
+        .filter((el, idx, arr) => el && arr.indexOf(el) === idx && box.contains(el))
+        .filter((el) => el.matches("button,[role=button]") || pointer(el));
+      const labelled = clickables.find((el) => /^(close|dismiss|close panel|hide)$/i.test((el.getAttribute("aria-label") || el.getAttribute("title") || "").trim()) || /^[×✕✖xX]$/.test(clean(el.innerText)));
+      if (labelled) return describe(labelled);
+      // An icon-sized control on the title's row, right of it, furthest right.
+      const icons = clickables
+        .map((el) => ({ el, r: el.getBoundingClientRect() }))
+        .filter(({ el, r }) => r.width <= 48 && r.height <= 48 && r.left > tr.right && Math.abs(r.top + r.height / 2 - (tr.top + tr.height / 2)) < 24 && clean(el.innerText).length <= 1)
+        .sort((a, b) => b.r.right - a.r.right);
+      if (icons.length) return describe(icons[0].el);
     }
-    return false;
+    return null;
+  }
+  // Kept for older callers: closes it with a script click.
+  function closePanel(titlePattern) {
+    const t = panelCloseTarget(titlePattern);
+    if (!t) return false;
+    byId(t.id)?.click();
+    return true;
   }
 
   // Scram project overview (after clicking "More"): the project's name, shown above
@@ -810,7 +828,7 @@
   }
 
   window.__sabDom = {
-    findText, modeToggle, closePanel, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox,
+    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox,
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,
