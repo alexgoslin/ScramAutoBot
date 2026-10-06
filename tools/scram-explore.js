@@ -27,7 +27,7 @@ function render(st) {
   if (!st) return;
   lastExplore = st;
   const labels = { running: "⏳ Exploring… watch the Scram tab", done: "✅ Finished — guide saved", stopped: "⏹ Stopped", error: "❌ Error" };
-  $("#status").textContent = `${labels[st.status] || st.status}${st.views?.length ? ` · ${st.views.length} views, ${st.notes?.length || 0} actions` : ""}`;
+  $("#status").textContent = `${labels[st.status] || st.status}${st.views?.length ? ` · ${st.views.length} views, ${st.notes?.length || 0} actions, ${Object.values(st.tried || {}).reduce((n, l) => n + l.length, 0)} controls tried` : ""}`;
   $("#status").className = `big ${st.status === "error" ? "bad" : st.status === "done" ? "ok" : ""}`;
   $("#log").textContent = (st.log || []).map((l) => `${new Date(l.t).toLocaleTimeString()}  ${l.msg}`).join("\n") || "(nothing yet)";
   $("#log").scrollTop = $("#log").scrollHeight;
@@ -54,9 +54,23 @@ $("#run").addEventListener("click", async () => {
   }
 });
 $("#stop").addEventListener("click", () => send("scramExploreStop").catch(() => {}));
+function fullReport() {
+  const st = lastExplore || {};
+  const notes = (st.notes || []).map((n) => `${n.i}. [${n.view}] ${n.action}\n   ${n.observation}`).join("\n");
+  const tried = Object.entries(st.tried || {}).map(([v, ls]) => `- **${v}**: ${ls.join(" · ")}`).join("\n");
+  return `# Scram exploration report\n\n_${new Date(st.startedAt || Date.now()).toLocaleString()} · ${st.views?.length || 0} views · ${st.notes?.length || 0} actions_\n\n# Manual\n\n${$("#guide").textContent}\n\n# Views seen\n${(st.views || []).map((v) => `- ${v}`).join("\n")}\n\n# Controls tried per view\n${tried}\n\n# Every action and what it showed\n${notes}\n`;
+}
+$("#download").addEventListener("click", () => {
+  const url = URL.createObjectURL(new Blob([fullReport()], { type: "text/markdown" }));
+  Object.assign(document.createElement("a"), { href: url, download: `scram-exploration-${new Date().toISOString().slice(0, 10)}.md` }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+});
+// Long runs: keep the extension's background worker awake while this page is open.
+setInterval(() => {
+  if (lastExplore?.status === "running") send("ping").catch(() => {});
+}, 20000);
 $("#copy").addEventListener("click", async () => {
-  const notes = (lastExplore?.notes || []).map((n) => `${n.i}. [${n.view}] ${n.action}\n   ${n.observation}`).join("\n");
-  await navigator.clipboard.writeText(`# Scram navigation guide\n\n${$("#guide").textContent}\n\n# Exploration notes\n${notes}`).catch(() => {});
+  await navigator.clipboard.writeText(fullReport()).catch(() => {});
   $("#copy").textContent = "Copied ✓";
   setTimeout(() => ($("#copy").textContent = "Copy guide + notes"), 1500);
 });

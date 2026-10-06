@@ -82,6 +82,7 @@
       selected: el.getAttribute("aria-selected") === "true" || el.getAttribute("aria-current") ? true : undefined,
       pressed: el.getAttribute("aria-pressed") ?? (el.getAttribute("aria-checked") ?? undefined),
       inLayer: el.closest(LAYERS) ? true : undefined,
+      header: isHeaderControl(el) || undefined,
       submits: (el.tagName === "BUTTON" && el.form && el.type === "submit") || (el.tagName === "INPUT" && el.type === "submit") || undefined,
       editable: el.isContentEditable || ["INPUT", "TEXTAREA"].includes(el.tagName) || undefined,
       box: [Math.round(r.left), Math.round(r.top + scrollY), Math.round(r.width), Math.round(r.height)],
@@ -763,6 +764,43 @@
     return { ...describe(hits[0]), text: clean(hits[0].innerText) || labelOf(hits[0]) };
   }
 
+  // Section headers of the editor's left column — the AI chat's title row ("…chat name…" with
+  // its plans / + / history / ^ icons) and "Page Structure" with its chevron. Clicking them only
+  // collapses sections or starts new chats, so nothing should click them.
+  let headerCache = { t: 0, rows: [] };
+  let computingHeaders = false;
+  function headerRows() {
+    if (computingHeaders) return []; // computeHeaderRows → findText → describe → here: don't recurse
+    if (Date.now() - headerCache.t < 500) return headerCache.rows; // one scan per snapshot
+    computingHeaders = true;
+    try {
+      headerCache = { t: Date.now(), rows: computeHeaderRows() };
+    } finally {
+      computingHeaders = false;
+    }
+    return headerCache.rows;
+  }
+  function computeHeaderRows() {
+    const leftEdge = innerWidth * 0.4;
+    const labels = [
+      ...findText("^page structure$", { maxLen: 20 }),
+      ...findText('^["“].{2,90}["”]$', { maxLen: 95 }),
+    ]
+      .map((d) => byId(d.id))
+      .filter((el) => el && !el.closest(OUR_UI) && el.getBoundingClientRect().right <= leftEdge);
+    return labels.map((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+  }
+  function isHeaderControl(el) {
+    if (!el?.getBoundingClientRect) return false;
+    const r = el.getBoundingClientRect();
+    if (r.left > innerWidth * 0.4 || r.height > 60) return false;
+    const mid = r.top + r.height / 2;
+    return headerRows().some((y) => Math.abs(y - mid) < 16);
+  }
+
   // Right edge of the editor's left column (AI chat + Page Structure). Falls back to 35% of the
   // viewport when the chat isn't found.
   function leftColumnRight() {
@@ -797,19 +835,19 @@
   function panelCloseTarget(titlePattern) {
     // Only a real panel heading (big text, outside the AI chat column) — not e.g. a "Plans"
     // tooltip on the chat header's icon, whose row also holds the chat's collapse chevron.
-    const left = leftColumnRight();
+    const chat = chatPanel();
     const title = findText(titlePattern, { maxLen: 20 })
       .map((d) => byId(d.id))
       .find((el) => {
-        if (!el || el.closest(OUR_UI)) return false;
-        const r = el.getBoundingClientRect();
-        return parseFloat(getComputedStyle(el).fontSize) >= 15 && r.left >= left - 4 && r.height >= 14;
+        if (!el || el.closest(OUR_UI) || (chat && chat.contains(el))) return false;
+        return parseFloat(getComputedStyle(el).fontSize) >= 15 && el.getBoundingClientRect().height >= 14;
       });
     if (!title) return null;
     const tr = title.getBoundingClientRect();
     for (let box = title.parentElement, i = 0; box && box !== document.body && i < 8; box = box.parentElement, i++) {
+      if (chat && box.contains(chat)) break; // grew past the panel into the page around the chat
       const br = box.getBoundingClientRect();
-      if (br.width < 300 || br.left < left - 4) continue;
+      if (br.width < 300) continue;
       const clickables = [...box.querySelectorAll("button,[role=button],[aria-label],[title],svg,span,div,a")]
         .filter((el) => isVisible(el) && el !== title && !el.contains(title))
         .map((el) => (el.tagName.toLowerCase() === "svg" || el.closest("svg") ? el.closest("button,[role=button]") || el.closest("svg").parentElement : el))
@@ -866,7 +904,7 @@
   }
 
   window.__sabDom = {
-    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget,
+    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
     ping: () => true,
