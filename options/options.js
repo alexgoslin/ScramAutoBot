@@ -13,7 +13,7 @@ async function load() {
   $("#specMaxTokens").value = settings.specMaxTokens;
   $("#handoffMaxTokens").value = settings.handoffMaxTokens;
   $("#autoSubmit").checked = settings.autoSubmit;
-  for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds", "maxRoundsPerStep"]) $(`#${k}`).value = settings[k];
+  for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds"]) $(`#${k}`).value = settings[k];
   for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus", "scramSendAsFile", "coreFeaturesOnly", "askQuestions"]) $(`#${k}`).checked = settings[k];
   $("#slimContext").checked = settings.slimContext !== false;
   $("#stepSize").value = settings.stepSize || "small";
@@ -44,7 +44,6 @@ function readSettings() {
     autopilotBuild: $("#autopilotBuild").checked,
     scramSendAsFile: $("#scramSendAsFile").checked,
     scramIdleSeconds: int("#scramIdleSeconds", DEFAULT_SETTINGS.scramIdleSeconds),
-    maxRoundsPerStep: int("#maxRoundsPerStep", DEFAULT_SETTINGS.maxRoundsPerStep),
     coreFeaturesOnly: $("#coreFeaturesOnly").checked,
     askQuestions: $("#askQuestions").checked,
     slimContext: $("#slimContext").checked,
