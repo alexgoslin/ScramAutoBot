@@ -156,7 +156,7 @@
   function click(target) {
     const el = find(target);
     if (!el) return { ok: false, error: "element not found" };
-    el.scrollIntoView({ block: "center", inline: "center" });
+    el.scrollIntoView({ block: "nearest", inline: "nearest" });
     const r = el.getBoundingClientRect();
     const opts = { bubbles: true, cancelable: true, composed: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0 };
     el.dispatchEvent(new PointerEvent("pointerdown", { ...opts, pointerType: "mouse", isPrimary: true }));
@@ -459,23 +459,63 @@
     // project overview and hides the chat).
     const scope = chatPanel();
     if (!scope) return 0;
+    // Only the latest messages: jump to the bottom first and skip anything scrolled out of
+    // view, so old messages aren't expanded (that pushed the chat to the middle of its history).
+    const scroller = scrollChatToBottom().scroller;
+    const view = scroller ? scroller.getBoundingClientRect() : null;
     let n = 0;
     for (const el of deepAll("a,button,[role=button],span,div", scope)) {
       if (!isVisible(el) || el.children.length > 2) continue;
+      if (view) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < view.top || r.top > view.bottom) continue;
+      }
       const t = clean(el.innerText || el.textContent);
       if (/^(read more|show more|see more|expand|show full plan|view full plan|view plan|show all|more)\.{0,3}$/i.test(t) && el.getAttribute("aria-expanded") !== "true") {
         el.click();
         n++;
       }
     }
+    if (n) setTimeout(() => scrollChatToBottom(), 400);
     return n;
+  }
+
+  // The scrolling message list of Scram's AI chat: the tallest scrollable box inside the chat
+  // panel (not the chat input itself).
+  function chatScroller() {
+    const panel = chatPanel();
+    if (!panel) return null;
+    const input = byId(findChatInput());
+    let best = null;
+    for (const el of [panel, ...panel.querySelectorAll("*")]) {
+      if (input && (el === input || input.contains(el))) continue; // the chat box's own scrolling
+      if (el.scrollHeight - el.clientHeight < 8) continue;
+      const oy = getComputedStyle(el).overflowY;
+      if (oy !== "auto" && oy !== "scroll" && oy !== "overlay") continue;
+      if (!best || el.clientHeight > best.clientHeight) best = el;
+    }
+    return best;
+  }
+
+  // Keep the chat on its newest message (Scram stops following new output once it's scrolled up).
+  function scrollChatToBottom() {
+    const scroller = chatScroller();
+    if (!scroller) return { ok: false, scroller: null };
+    const before = scroller.scrollTop;
+    scroller.scrollTop = scroller.scrollHeight;
+    return { ok: true, scroller, moved: Math.abs(scroller.scrollTop - before) > 4 };
+  }
+  function chatAtBottom() {
+    const s = chatScroller();
+    return !s || s.scrollHeight - s.scrollTop - s.clientHeight < 30;
   }
 
   // Viewport centre of an element (for trusted clicks via the debugger).
   function centerOf(target) {
     const el = find(target);
     if (!el) return null;
-    el.scrollIntoView({ block: "center", inline: "center" });
+    // "nearest" only scrolls if it's off screen (so e.g. Scram's chat isn't pulled back up).
+    el.scrollIntoView({ block: "nearest", inline: "nearest" });
     const r = el.getBoundingClientRect();
     // Prefer a point where the element is actually on top (a panel may cover part of it).
     for (const [fx, fy] of [[0.5, 0.5], [0.2, 0.5], [0.8, 0.5], [0.5, 0.25], [0.5, 0.75], [0.1, 0.5], [0.9, 0.5]]) {
@@ -906,7 +946,8 @@
   window.__sabDom = {
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed,
+    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom,
+    scrollChatToBottom: () => { const r = scrollChatToBottom(); return { ok: r.ok, moved: !!r.moved }; },
     ping: () => true,
   };
 })();
