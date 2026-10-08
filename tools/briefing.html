@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Research briefing</title>
+  <link rel="stylesheet" href="../options/options.css" />
+  <style>
+    .doc { line-height: 1.6; overflow-wrap: anywhere; }
+    .doc h1 { font-size: 22px; margin: 0 0 6px; }
+    .doc h2 { font-size: 17px; margin: 22px 0 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .doc h3 { font-size: 15px; margin: 14px 0 4px; }
+    .doc ul, .doc ol { padding-left: 22px; margin: 6px 0; }
+    .doc p { margin: 6px 0; }
+    .doc code { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); max-width: 100%; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="bar">
+      <select id="pick" aria-label="Which briefing"></select>
+      <button id="download" type="button">⬇ Download .md</button>
+      <button id="copy" type="button">Copy</button>
+    </section>
+    <section><div id="doc" class="doc"><p class="hint">Loading…</p></div></section>
+  </main>
+  <script type="module" src="briefing.js"></script>
+</body>
+</html>

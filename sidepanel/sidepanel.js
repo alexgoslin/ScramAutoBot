@@ -126,7 +126,7 @@ $("#bannerOptions").addEventListener("click", openOptions);
 async function loadData() {
   data = {
     ...data,
-    ...(await chrome.storage.local.get(["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage"])),
+    ...(await chrome.storage.local.get(["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings"])),
   };
   data.sites ||= [];
   data.specFiles ||= [];
@@ -441,6 +441,15 @@ function renderAutopilot() {
   if (b.totalSteps) parts.push(`step ${Math.min(b.step + 1, b.totalSteps)} of ${b.totalSteps}${b.rounds ? ` (round ${b.rounds})` : ""}`);
   $("#apCounters").textContent = `${parts.join(" · ")} · ${mins} min${usage}`;
 
+  // The research briefing for this run (written after the Q&A; just for reading).
+  const brief = (data.briefings || []).find((x) => x.id === String(ap.startedAt));
+  $("#apBriefing").classList.toggle("hidden", !brief);
+  if (brief) {
+    $("#apBriefingOpen").disabled = brief.status !== "done";
+    $("#apBriefingState").textContent =
+      brief.status === "done" ? "what I researched and what I'll build" : brief.status === "writing" ? "writing…" : `couldn't write it (${brief.error || "error"})`;
+  }
+
   renderQA(ap);
   $("#apStop").classList.toggle("hidden", !active);
   $("#apResume").classList.toggle("hidden", !["paused", "stopped", "error"].includes(ap.status));
@@ -495,6 +504,9 @@ function collectAnswers() {
   }
   return answers;
 }
+$("#apBriefingOpen").addEventListener("click", () =>
+  chrome.tabs.create({ url: chrome.runtime.getURL(`tools/briefing.html?id=${encodeURIComponent(String(data.autopilot?.startedAt || ""))}`) })
+);
 $("#apQASubmit").addEventListener("click", () => send("autopilotAnswer", { answers: collectAnswers() }).catch((e) => toast(e.message)));
 $("#apQARecommended").addEventListener("click", () => send("autopilotAnswer", { answers: {} }).catch((e) => toast(e.message)));
 
