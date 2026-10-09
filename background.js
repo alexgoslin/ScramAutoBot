@@ -11,6 +11,8 @@ const SCRAM_URL = store.SCRAM_HOME;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
+  // Tidy step files saved by older versions (shorter context, short quick check at the end).
+  store.streamlineSavedSteps().catch(console.error);
   // After an update/reload, carry on with a running Autopilot from where it left off
   // (its state is saved in storage, which reloading keeps).
   autopilot.tick();
