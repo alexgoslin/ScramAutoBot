@@ -92,6 +92,10 @@
       <div class="card">
         <label class="label" for="filesSite">Site</label>
         <select id="filesSite" class="site-select"></select>
+        <div class="row wipe-row">
+          <button id="wipeSiteBtn" class="small danger" type="button">🗑 Wipe this site's data</button>
+          <button id="wipeAllBtn" class="small ghost danger" type="button">Wipe all sites</button>
+        </div>
       </div>
       <div id="filesList"></div>
     </section>
@@ -142,6 +146,17 @@
     </div>
     <div id="readerMeta" class="muted reader-meta"></div>
     <pre id="readerBody" class="reader-body"></pre>
+  </div>
+
+  <!-- In-panel confirmation (the browser's confirm() popup doesn't work in Chrome's side panel) -->
+  <div id="confirmBox" class="confirm-box hidden" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
+    <div class="confirm-card">
+      <p id="confirmText"></p>
+      <div class="row confirm-actions">
+        <button id="confirmNo" class="small" type="button">Cancel</button>
+        <button id="confirmYes" class="small primary" type="button">OK</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>

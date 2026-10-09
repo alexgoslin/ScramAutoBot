@@ -19,6 +19,28 @@ let keepAliveTimer = null;
 
 // ---------------------------------------------------------------------------- utils
 
+// confirm() popups don't work in Chrome's side panel (they return "cancel" without showing),
+// so ask inside the panel instead. Resolves true/false.
+function askConfirm(message, { ok = "OK", danger = false } = {}) {
+  return new Promise((resolve) => {
+    const box = $("#confirmBox");
+    $("#confirmText").textContent = message;
+    $("#confirmYes").textContent = ok;
+    $("#confirmYes").classList.toggle("danger-confirm", danger);
+    box.classList.remove("hidden");
+    const done = (v) => {
+      box.classList.add("hidden");
+      $("#confirmYes").onclick = $("#confirmNo").onclick = box.onclick = document.onkeydown = null;
+      resolve(v);
+    };
+    $("#confirmYes").onclick = () => done(true);
+    $("#confirmNo").onclick = () => done(false);
+    box.onclick = (e) => e.target === box && done(false);
+    document.onkeydown = (e) => e.key === "Escape" && done(false);
+    $("#confirmYes").focus();
+  });
+}
+
 function send(type, extra = {}) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ type, ...extra }, (res) => {
@@ -124,15 +146,17 @@ $("#bannerOptions").addEventListener("click", openOptions);
 // ---------------------------------------------------------------------------- data
 
 async function loadData() {
-  data = {
-    ...data,
-    ...(await chrome.storage.local.get(["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings"])),
-  };
+  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings"];
+  const got = await chrome.storage.local.get(keys);
+  // Keys that were removed (e.g. a wiped Autopilot run) must not linger from the last load.
+  data = { ...data, ...Object.fromEntries(keys.map((k) => [k, got[k] ?? null])) };
   data.sites ||= [];
   data.specFiles ||= [];
   data.handoffFiles ||= [];
   data.buildProgress ||= {};
   data.jobs ||= {};
+  data.briefings ||= [];
+  data.apiKey ||= "";
   render();
   manageKeepAlive();
 }
@@ -215,7 +239,7 @@ function specItem(spec) {
         class: "small ghost",
         title: "Delete",
         onclick: async () => {
-          if (!confirm(`Delete spec for "${spec.pageTitle}"?`)) return;
+          if (!(await askConfirm(`Delete the spec file for "${spec.pageTitle}"?`, { ok: "Delete", danger: true }))) return;
           const specFiles = data.specFiles.filter((s) => s.id !== spec.id);
           await chrome.storage.local.set({ specFiles });
         },
@@ -512,7 +536,7 @@ $("#apQARecommended").addEventListener("click", () => send("autopilotAnswer", { 
 
 $("#apStart").addEventListener("click", async () => {
   if (!currentTab) return;
-  const ok = confirm(
+  const ok = await askConfirm(
     `Autopilot will now, without asking again:\n\n` +
       `• explore ${host(siteUrlOf(currentTab.url))} in a new tab, clicking controls (including likes, follows, toggles — undone afterwards) and typing into text boxes without submitting. It never logs out, deletes, pays, or posts/sends content. Change this under Settings → Exploration mode.\n` +
       `• write a spec per screen, generate the build steps,\n` +
@@ -618,7 +642,7 @@ $("#buildBtn").addEventListener("click", async () => {
 
 $("#resetBuildBtn").addEventListener("click", async () => {
   const siteUrl = selectedSite;
-  if (siteUrl && confirm("Mark all steps as not done?")) await send("resetBuild", { siteUrl });
+  if (siteUrl && (await askConfirm("Mark all steps as not done?"))) await send("resetBuild", { siteUrl });
 });
 
 $("#stopBuildBtn").addEventListener("click", () => send("stopBuild"));
@@ -627,3 +651,30 @@ $("#stopBuildBtn").addEventListener("click", () => send("stopBuild"));
 
 refreshCurrentTab();
 loadData();
+
+// ---- wipe stored data for a site (or all sites)
+$("#wipeSiteBtn").addEventListener("click", async () => {
+  const siteUrl = selectedSite;
+  if (!siteUrl) return toast("No site selected.");
+  const specs = data.specFiles.filter((s) => s.siteUrl === siteUrl).length;
+  const steps = data.handoffFiles.filter((f) => f.siteUrl === siteUrl).length;
+  if (!(await askConfirm(`Wipe everything saved for ${host(siteUrl)}?\n\n${specs} spec file(s), ${steps} handoff/step file(s), its build progress, research briefings and its Autopilot run. This can't be undone.`, { ok: "Wipe", danger: true }))) return;
+  try {
+    await send("wipeSite", { siteUrl });
+    selectedSite = null;
+    toast(`Wiped ${host(siteUrl)}.`);
+  } catch (e) {
+    toast(e.message);
+  }
+});
+$("#wipeAllBtn").addEventListener("click", async () => {
+  const n = sitesByRecency().length;
+  if (!(await askConfirm(`Wipe the data for ALL ${n} site(s)?\n\nEvery spec file, handoff/step file, build progress, research briefing and finished Autopilot run. Your API key, settings, cost totals and what it learned about Scram are kept. This can't be undone.`, { ok: "Wipe all", danger: true }))) return;
+  try {
+    await send("wipeAllSites");
+    selectedSite = null;
+    toast("Wiped all site data.");
+  } catch (e) {
+    toast(e.message);
+  }
+});

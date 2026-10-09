@@ -116,9 +116,9 @@ $("#exportData").addEventListener("click", async () => {
 });
 
 $("#clearData").addEventListener("click", async () => {
-  if (!confirm("Delete all sites, spec files, handoff files and build progress? Your API key and settings are kept.")) return;
-  await chrome.storage.local.remove(["sites", "specFiles", "handoffFiles", "buildProgress", "activeBuild", "jobs"]);
-  alert("All captured data deleted.");
+  if (!confirm("Delete all sites' data — spec files, handoff/step files, build progress and research briefings? Your API key, settings and what it learned about Scram are kept.")) return;
+  const res = await chrome.runtime.sendMessage({ type: "wipeAllSites" });
+  alert(res?.ok ? "All site data deleted." : res?.error || "Couldn't delete the data.");
 });
 
 async function showUsage() {

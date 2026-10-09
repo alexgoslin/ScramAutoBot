@@ -192,3 +192,12 @@ select {
   background: var(--text); color: var(--bg); padding: 6px 12px; border-radius: 999px;
   font-size: 12px; z-index: 20;
 }
+
+/* In-panel confirmation dialog */
+.confirm-box { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.confirm-card { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 14px; max-width: 360px; width: 100%; display: grid; gap: 10px; }
+.confirm-card p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+.confirm-actions { justify-content: flex-end; }
+.wipe-row { margin-top: 8px; flex-wrap: wrap; gap: 6px; }
+button.danger { color: var(--err, #b91c1c); border-color: var(--err, #b91c1c); }
+button.primary.danger-confirm { background: var(--err, #b91c1c); border-color: var(--err, #b91c1c); color: #fff; }

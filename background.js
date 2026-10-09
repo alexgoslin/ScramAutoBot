@@ -185,6 +185,8 @@ const handlers = {
   resetBuild: ({ siteUrl }) => resetBuild(siteUrl),
   stopBuild: () => store.set("activeBuild", null),
   clearJob: ({ key }) => store.setJob(key, null),
+  wipeSite: ({ siteUrl }) => (siteUrl ? store.wipeSiteData(siteUrl) : Promise.reject(new Error("No site chosen."))),
+  wipeAllSites: () => store.wipeSiteData(null),
 
   // Scram upload test page
   attachTestFindTab: async () => {
