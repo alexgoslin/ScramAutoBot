@@ -476,6 +476,7 @@ function renderAutopilot() {
 
   renderQA(ap);
   $("#apStop").classList.toggle("hidden", !active);
+  $("#apPause").classList.toggle("hidden", ap.status !== "running");
   $("#apResume").classList.toggle("hidden", !["paused", "stopped", "error"].includes(ap.status));
   $("#apReset").classList.toggle("hidden", !!active);
 
@@ -485,11 +486,15 @@ function renderAutopilot() {
     ...(ap.log || []).slice(-80).map((l) => {
       const kind = l.msg.startsWith("💬 You:") ? "you" : l.msg.startsWith("🤖 Autopilot:") ? "bot" : "";
       return el("li", kind ? { class: kind } : {}, `${new Date(l.t).toLocaleTimeString()} ${l.msg}`);
-    })
+    }),
+    ...(ap.replying && Date.now() - ap.replying < 180000 ? [el("li", { class: "bot typing" }, "🤖 Autopilot is thinking…")] : [])
   );
-  if (!log.classList.contains("hidden") && atBottom) log.scrollTop = log.scrollHeight;
-  // The chat box sits under the log and works while Autopilot is running or paused.
-  $("#apChat").classList.toggle("hidden", log.classList.contains("hidden") || !active);
+  if (atBottom) log.scrollTop = log.scrollHeight;
+  // The log and the chat box under it are always shown: message Autopilot while it works, or
+  // pause it and talk it through (it answers you here), then Resume.
+  $("#apChat").classList.remove("hidden");
+  $("#apChatInput").placeholder =
+    ap.status === "running" ? "Message Autopilot… e.g. tell Scram to use blue buttons" : ap.status === "done" ? "Ask Autopilot about this run…" : "Ask Autopilot anything, or tell it what to change before you Resume…";
 }
 
 // ---- Q&A form (built once per set of questions, so choices survive re-renders)
@@ -559,14 +564,7 @@ $("#apInstructions").addEventListener("input", () => chrome.storage.local.set({ 
 $("#apStop").addEventListener("click", () => send("autopilotStop").catch((e) => toast(e.message)));
 $("#apResume").addEventListener("click", () => send("autopilotResume").catch((e) => toast(e.message)));
 $("#apReset").addEventListener("click", () => send("autopilotReset").catch((e) => toast(e.message)));
-$("#apLogToggle").addEventListener("click", () => {
-  const log = $("#apLog");
-  log.classList.toggle("hidden");
-  $("#apLogToggle").textContent = log.classList.contains("hidden") ? "Show log" : "Hide log";
-  log.scrollTop = log.scrollHeight;
-  renderAutopilot();
-  if (!log.classList.contains("hidden")) $("#apChatInput").focus();
-});
+$("#apPause").addEventListener("click", () => send("autopilotPause").catch((e) => toast(e.message)));
 $("#apChat").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("#apChatInput");

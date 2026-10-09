@@ -53,10 +53,10 @@
           </div>
           <div id="apCounters" class="muted small-text"></div>
           <div class="row">
+            <button id="apPause" class="small" title="Pause at the next safe point, so you can talk to Autopilot, then Resume">⏸ Pause</button>
             <button id="apStop" class="small">Stop</button>
             <button id="apResume" class="small primary">Resume</button>
             <button id="apReset" class="small ghost">Clear</button>
-            <button id="apLogToggle" class="small ghost">Show log</button>
           </div>
           <div id="apQA" class="ap-qa hidden">
             <div class="label">Questions before planning the build</div>
@@ -67,7 +67,7 @@
               <button id="apQARecommended" class="small" type="button">Use all recommended</button>
             </div>
           </div>
-          <ol id="apLog" class="ap-log hidden"></ol>
+          <ol id="apLog" class="ap-log"></ol>
           <form id="apChat" class="ap-chat hidden">
             <input id="apChatInput" type="text" autocomplete="off" placeholder="Message Autopilot… e.g. tell Scram to use blue buttons" />
             <button id="apChatSend" class="small primary" type="submit">Send</button>
