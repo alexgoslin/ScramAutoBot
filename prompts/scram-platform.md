@@ -46,3 +46,12 @@ Don't plan steps that need these. Build the nearest simple version, or leave the
 - **Roles can't be deleted.** Name them carefully.
 - **Storage files can't be deleted in Scram's UI.**
 - **Testing**: Scram's AI tests in Run mode, which uses a Dev build.
+
+## Social login (Google etc.): testing and setup
+- **Scram's AI can't sign in with Google** (or any social provider) while testing: the sign-in opens a Google popup it can't use in the Run preview. An app whose only login is Google can't be tested by it at all.
+- **So whenever the app uses social login, also build a temporary developer login**, in the same step that builds login: an email + password sign-in (or a "Dev login" button) with seeded test accounts, one per role (e.g. dev-admin@example.test and dev-member@example.test with a known password). Label it clearly as **DEV ONLY: remove before publishing**. Scram's AI uses it to log in and test everything.
+- **Setting up Google itself is a job for the human.** Scram's AI can't do it. Steps:
+  1. In Scram: More → Users → **Add Provider → Google**, and copy the **Dev** and **Live** callback URLs.
+  2. In Google Cloud Console: APIs & Services → Credentials → configure the OAuth consent screen (External), then **Create Credentials → OAuth 2.0 Client ID → Web application**. Add both callback URLs as Authorised redirect URIs, then Create.
+  3. Back in Scram's Users panel, paste the **Client ID** and **Client Secret** and save. Google then appears in the **Login with Social Provider** action's provider list.
+  4. Before publishing to Live, make sure the Live callback URL is in Google's redirect URIs.

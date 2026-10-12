@@ -510,12 +510,49 @@
     return best;
   }
 
+  // The editor's left column holding Scram's AI chat — found even when the chat box is replaced by
+  // a question form ("Write my own answer" / Cancel): from the chat panel if there is one, else
+  // from the "Page Structure" header that sits under the chat. { left, right, top, bottom, psTop }.
+  function chatColumn() {
+    const ps = findText("^page structure$", { maxLen: 20 }).map((d) => byId(d.id)).find((el) => el && el.getBoundingClientRect().left < innerWidth * 0.45);
+    const psTop = ps ? ps.getBoundingClientRect().top : innerHeight;
+    const p = chatPanel();
+    if (p) {
+      const r = p.getBoundingClientRect();
+      if (r.width < innerWidth * 0.6) return { left: r.left, right: r.right, top: 0, bottom: innerHeight, psTop };
+    }
+    if (ps) {
+      let el = ps;
+      while (el.parentElement && el.parentElement !== document.body && el.parentElement.getBoundingClientRect().width < innerWidth * 0.45) el = el.parentElement;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: 0, bottom: innerHeight, psTop };
+    }
+    return { left: 0, right: innerWidth * 0.3, top: 0, bottom: innerHeight, psTop };
+  }
+
   // Keep the chat on its newest message (Scram stops following new output once it's scrolled up,
-  // and a page reload redraws the history from the top). Works for normal and bottom-anchored
-  // (column-reverse) lists; also brings the last message itself into view.
+  // and a page reload redraws the history from the top). Scrolls every scrolling area of the chat
+  // column (message list, question/plan panes — not the Page Structure tree) to its bottom.
+  // Works for normal and bottom-anchored (column-reverse) lists. Never scrolls up.
   function scrollChatToBottom() {
+    const col = chatColumn();
+    const toBottom = (el) => {
+      const reversed = /column-reverse/.test(getComputedStyle(el).flexDirection);
+      if (reversed) el.scrollTop = 0;
+      else if (el.scrollTop < el.scrollHeight) el.scrollTop = el.scrollHeight;
+    };
+    const editable = (el) => el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "INPUT";
+    for (const el of document.querySelectorAll("*")) {
+      if (el.scrollHeight - el.clientHeight < 8 || editable(el)) continue;
+      const oy = getComputedStyle(el).overflowY;
+      if (oy !== "auto" && oy !== "scroll" && oy !== "overlay") continue;
+      const r = el.getBoundingClientRect();
+      // inside the chat column, above the Page Structure tree, and not a wrapper around that tree
+      if (r.height < 100 || r.left < col.left - 4 || r.right > col.right + 4 || r.top >= col.psTop - 4 || r.bottom > col.psTop + 4 || !isVisible(el)) continue;
+      toBottom(el);
+    }
     const scroller = chatScroller();
-    if (!scroller) return { ok: false, scroller: null };
+    if (!scroller) return { ok: true, scroller: null };
     const before = scroller.scrollTop;
     const reversed = /column-reverse/.test(getComputedStyle(scroller).flexDirection);
     scroller.scrollTop = reversed ? 0 : scroller.scrollHeight;
@@ -1007,7 +1044,7 @@
   window.__sabDom = {
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame,
+    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
     scrollChatToBottom: () => { const r = scrollChatToBottom(); return { ok: r.ok, moved: !!r.moved }; },
     ping: () => true,
   };
