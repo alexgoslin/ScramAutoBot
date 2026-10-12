@@ -480,30 +480,91 @@
     return n;
   }
 
-  // The scrolling message list of Scram's AI chat: the tallest scrollable box inside the chat
-  // panel (not the chat input itself).
+  // The scrolling message list of Scram's AI chat: a scrollable box inside the chat panel (not
+  // the chat input itself). Prefer the one sitting directly above the chat box and lined up with
+  // it (that's the message list), else the tallest.
   function chatScroller() {
     const panel = chatPanel();
     if (!panel) return null;
     const input = byId(findChatInput());
+    const ir = input?.getBoundingClientRect();
     let best = null;
+    let bestScore = -Infinity;
     for (const el of [panel, ...panel.querySelectorAll("*")]) {
       if (input && (el === input || input.contains(el))) continue; // the chat box's own scrolling
-      if (el.scrollHeight - el.clientHeight < 8) continue;
+      if (el.scrollHeight - el.clientHeight < 8 || !isVisible(el)) continue;
       const oy = getComputedStyle(el).overflowY;
       if (oy !== "auto" && oy !== "scroll" && oy !== "overlay") continue;
-      if (!best || el.clientHeight > best.clientHeight) best = el;
+      const r = el.getBoundingClientRect();
+      let score = r.height;
+      if (ir) {
+        const gap = ir.top - r.bottom; // message list ends just above the composer
+        const lined = Math.min(r.right, ir.right) - Math.max(r.left, ir.left) > ir.width * 0.5;
+        if (lined && gap > -40 && gap < 220) score += 10000;
+      }
+      if (score > bestScore) {
+        best = el;
+        bestScore = score;
+      }
     }
     return best;
   }
 
-  // Keep the chat on its newest message (Scram stops following new output once it's scrolled up).
+  // Keep the chat on its newest message (Scram stops following new output once it's scrolled up,
+  // and a page reload redraws the history from the top). Works for normal and bottom-anchored
+  // (column-reverse) lists; also brings the last message itself into view.
   function scrollChatToBottom() {
     const scroller = chatScroller();
     if (!scroller) return { ok: false, scroller: null };
     const before = scroller.scrollTop;
-    scroller.scrollTop = scroller.scrollHeight;
+    const reversed = /column-reverse/.test(getComputedStyle(scroller).flexDirection);
+    scroller.scrollTop = reversed ? 0 : scroller.scrollHeight;
+    const last = [...scroller.querySelectorAll("*")].reverse().find((el) => isVisible(el) && clean(el.textContent).length > 0 && el.children.length === 0);
+    if (last && !reversed) {
+      const lr = last.getBoundingClientRect();
+      const sr = scroller.getBoundingClientRect();
+      if (lr.bottom > sr.bottom + 2) scroller.scrollTop += lr.bottom - sr.bottom + 8; // only ever down
+    }
     return { ok: true, scroller, moved: Math.abs(scroller.scrollTop - before) > 4 };
+  }
+
+  // The Run preview: the biggest visible iframe outside the chat panel. Reports its position (for
+  // cropping a screenshot) and whether something (Plans panel, a popover…) is covering it.
+  function previewFrame() {
+    const panel = chatPanel();
+    const frames = [...document.querySelectorAll("iframe")].filter((f) => isVisible(f) && !(panel && panel.contains(f)));
+    let best = null;
+    for (const f of frames) {
+      const r = f.getBoundingClientRect();
+      if (r.width < 200 || r.height < 150) continue;
+      if (!best || r.width * r.height > best.r.width * best.r.height) best = { f, r };
+    }
+    if (!best) return null;
+    const { f, r } = best;
+    const x0 = Math.max(0, r.left), y0 = Math.max(0, r.top);
+    const x1 = Math.min(innerWidth, r.right), y1 = Math.min(innerHeight, r.bottom);
+    let covered = 0;
+    let coverLabel = "";
+    const pts = [[0.5, 0.5], [0.25, 0.3], [0.75, 0.3], [0.25, 0.7], [0.75, 0.7], [0.5, 0.15], [0.5, 0.85]];
+    for (const [fx, fy] of pts) {
+      const hit = document.elementFromPoint(x0 + (x1 - x0) * fx, y0 + (y1 - y0) * fy);
+      if (hit && hit !== f && !f.contains(hit)) {
+        covered++;
+        if (!coverLabel) {
+          const box = hit.closest("[role=dialog],[role=menu],[aria-modal],section,aside,div") || hit;
+          coverLabel = clean(box.getAttribute("aria-label") || box.innerText || "").slice(0, 60);
+        }
+      }
+    }
+    return {
+      rect: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 },
+      dpr: devicePixelRatio || 1,
+      vw: innerWidth,
+      vh: innerHeight,
+      src: f.src || "",
+      covered: covered / pts.length,
+      coverLabel,
+    };
   }
   function chatAtBottom() {
     const s = chatScroller();
@@ -946,7 +1007,7 @@
   window.__sabDom = {
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom,
+    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame,
     scrollChatToBottom: () => { const r = scrollChatToBottom(); return { ok: r.ok, moved: !!r.moved }; },
     ping: () => true,
   };
