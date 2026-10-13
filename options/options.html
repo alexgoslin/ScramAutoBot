@@ -18,10 +18,21 @@
       <label for="model">Model</label>
       <input id="model" type="text" list="modelList" spellcheck="false" />
       <datalist id="modelList">
-        <option value="claude-sonnet-5"></option>
+        <option value="claude-fable-5-1"></option>
         <option value="claude-opus-5-5"></option>
+        <option value="claude-sonnet-5-5"></option>
         <option value="claude-haiku-4-5-20251001"></option>
       </datalist>
+
+      <label for="operatorModel">Operator model — the extension's own AI that works Scram for you (supervises Scram's AI, finds its way around the editor from screenshots, gets back to Run mode, does the final review)</label>
+      <input id="operatorModel" type="text" list="modelList" spellcheck="false" />
+      <label for="operatorEffort">Operator thinking effort</label>
+      <select id="operatorEffort">
+        <option value="medium">Medium — faster, cheaper</option>
+        <option value="high">High (recommended)</option>
+        <option value="xhigh">Extra high — slower, most careful</option>
+      </select>
+      <p class="hint">Claude Fable 5.1 is the most capable (and most expensive: about 2.5× Opus 5.5 per token). Opus 5.5 is a good cheaper choice.</p>
 
       <div class="grid">
         <div>

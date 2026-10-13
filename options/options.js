@@ -10,6 +10,8 @@ async function load() {
   const settings = await getSettings();
   $("#apiKey").value = apiKey;
   $("#model").value = settings.model;
+  $("#operatorModel").value = settings.operatorModel || "";
+  $("#operatorEffort").value = settings.operatorEffort || "high";
   $("#specMaxTokens").value = settings.specMaxTokens;
   $("#handoffMaxTokens").value = settings.handoffMaxTokens;
   $("#autoSubmit").checked = settings.autoSubmit;
@@ -30,6 +32,8 @@ function readSettings() {
   };
   return {
     model: $("#model").value.trim() || DEFAULT_SETTINGS.model,
+    operatorModel: $("#operatorModel").value.trim() || DEFAULT_SETTINGS.operatorModel,
+    operatorEffort: ["medium", "high", "xhigh"].includes($("#operatorEffort").value) ? $("#operatorEffort").value : "high",
     specMaxTokens: int("#specMaxTokens", DEFAULT_SETTINGS.specMaxTokens),
     handoffMaxTokens: int("#handoffMaxTokens", DEFAULT_SETTINGS.handoffMaxTokens),
     autoSubmit: $("#autoSubmit").checked,
