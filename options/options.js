@@ -16,7 +16,8 @@ async function load() {
   for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds"]) $(`#${k}`).value = settings[k];
   for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus", "scramSendAsFile", "coreFeaturesOnly", "askQuestions", "finalDesignReview"]) $(`#${k}`).checked = settings[k];
   $("#slimContext").checked = settings.slimContext !== false;
-  $("#stepSize").value = settings.stepSize || "small";
+  $("#stepSize").value = settings.stepSize || "standard";
+  $("#detailedSteps").checked = settings.detailedSteps !== false;
   $("#maxStepChars").value = settings.maxStepChars;
   $("#specPrompt").value = promptOverrides.specExtractor || "";
   $("#handoffPrompt").value = promptOverrides.handoffSplitter || "";
@@ -48,7 +49,9 @@ function readSettings() {
     askQuestions: $("#askQuestions").checked,
     finalDesignReview: $("#finalDesignReview").checked,
     slimContext: $("#slimContext").checked,
-    stepSize: $("#stepSize").value === "standard" ? "standard" : "small",
+    stepSize: $("#stepSize").value === "small" ? "small" : "standard",
+    detailedSteps: $("#detailedSteps").checked,
+    settingsVersion: 2,
     maxStepChars: Math.max(2000, int("#maxStepChars", DEFAULT_SETTINGS.maxStepChars)),
   };
 }

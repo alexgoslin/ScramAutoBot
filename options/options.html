@@ -95,13 +95,14 @@
     <section>
       <h2>Step files</h2>
       <p class="hint">How the build steps given to Scram's AI are written. Applies the next time you generate a handoff.</p>
+      <label class="check"><input id="detailedSteps" type="checkbox" /> Detailed steps — after planning, each step gets its own pass that spells out every screen, button, field and workflow exactly (where it is, how it looks, what it does, which pipeline runs and why), using the crawled screen specs. Slower to generate and uses more Claude credit, but leaves Scram's AI far less to guess.</label>
       <label class="check"><input id="slimContext" type="checkbox" /> Slim context — after Setup, each step gets a short project summary plus only the tables, screens and styles it uses (the rest already lives in the Scram project). Off = repeat the full context in every step.</label>
       <div class="grid">
         <div>
           <label for="stepSize">Step size</label>
           <select id="stepSize">
-            <option value="small">Small — up to 6 checklist items per step (more, easier steps)</option>
-            <option value="standard">Standard — up to 10 checklist items per step</option>
+            <option value="standard">Standard — up to 10 checklist items per step (recommended)</option>
+            <option value="small">Small — up to 6 checklist items per step (more, smaller steps)</option>
           </select>
         </div>
         <div>
