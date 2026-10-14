@@ -11,6 +11,6 @@ Keeps Scram editor tabs (`https://editor.buildwithscram.com/...`) running at ful
 
 ## Install
 
-`chrome://extensions` → enable **Developer mode** → **Load unpacked** → select this folder. Reload any Scram tabs that were already open.
+`chrome://extensions` → enable **Developer mode** → **Load unpacked** → select this `KeepScramAlive` folder. Reload any Scram tabs that were already open.
 
 For extra safety, also add `editor.buildwithscram.com` under **chrome://settings/performance → Always keep these sites active**.
