@@ -1,44 +1,23 @@
-/* Scram green scale: 0.5 #F4FEF4 · 1 #E4F7E3 · 2 #B8E4B4 · 3 #73C76C · 4 #3BB132 · 5 #099C01
-   6 #097E00 · 7 #075F00 (brand / logo) · 8 #043F00 · 9 #052800 · 10 #011000 */
+/* White, with Scram green (#075F00, shade 7) used sparingly: only status ticks and the checkbox. */
 :root {
-  --bg: #fff;
-  --text: #011000;
-  --muted: #4d5c4c;
-  --brand: #075F00;
-  --ok: #097E00;
-  --warn: #9a6700;
-  --line: #E4F7E3;
-  --tip-bg: #F4FEF4;
-  --tip-border: #B8E4B4;
-  --accent: #099C01;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #011000;
-    --text: #F4FEF4;
-    --muted: #B8E4B4;
-    --brand: #73C76C;
-    --ok: #73C76C;
-    --warn: #d29922;
-    --line: #052800;
-    --tip-bg: #052800;
-    --tip-border: #075F00;
-    --accent: #3BB132;
-  }
+  --green: #075F00;
+  --text: #1d1d1f;
+  --muted: #6b6b70;
+  --line: #ececec;
 }
 
-body { width: 320px; margin: 0; padding: 12px 14px; font: 13px/1.4 system-ui, sans-serif; color: var(--text); background: var(--bg); border-top: 4px solid var(--brand); }
-h1 { font-size: 15px; margin: 0; color: var(--brand); }
-h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--brand); margin: 14px 0 6px; }
+body { width: 320px; margin: 0; padding: 12px 14px; font: 13px/1.4 system-ui, sans-serif; color: var(--text); background: #fff; }
+h1 { font-size: 15px; margin: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 6px; }
 .sub, .muted { color: var(--muted); margin: 4px 0 0; font-size: 12px; }
 ul { list-style: none; margin: 0; padding: 0; }
 li { padding: 6px 0; border-bottom: 1px solid var(--line); }
 li .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 li .state { font-size: 11px; color: var(--muted); }
-.ok { color: var(--ok); font-weight: 600; }
-.warn { color: var(--warn); }
+.ok { color: var(--green); }
+.warn { color: #9a6700; }
 .toggle { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-weight: 600; }
-.toggle input { accent-color: var(--accent); }
-.tip { margin: 12px 0 0; padding: 8px; background: var(--tip-bg); border: 1px solid var(--tip-border); border-radius: 6px; font-size: 12px; }
+.toggle input { accent-color: var(--green); }
+.tip { margin: 12px 0 0; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
 code { font-size: 11px; }
 .hidden { display: none; }
