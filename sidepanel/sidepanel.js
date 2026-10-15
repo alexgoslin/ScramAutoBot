@@ -1,6 +1,21 @@
 import { handoffFileName } from "../lib/storage.js";
 import { totalCost, formatCost } from "../lib/pricing.js";
 
+// ---- Two areas: "site" (single-site cloning, as before) and "category" (category cloning).
+const isCategoryKey = (u) => {
+  try {
+    return new URL(u).hostname.endsWith(".category");
+  } catch {
+    return false;
+  }
+};
+let uiMode = "site";
+try {
+  uiMode = localStorage.getItem("uiMode") === "category" ? "category" : "site";
+} catch {
+  /* storage unavailable: default */
+}
+
 const $ = (sel) => document.querySelector(sel);
 
 function downloadMd(name, content) {
@@ -146,7 +161,7 @@ $("#bannerOptions").addEventListener("click", openOptions);
 // ---------------------------------------------------------------------------- data
 
 async function loadData() {
-  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings"];
+  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings", "categoryDocs"];
   const got = await chrome.storage.local.get(keys);
   // Keys that were removed (e.g. a wiped Autopilot run) must not linger from the last load.
   data = { ...data, ...Object.fromEntries(keys.map((k) => [k, got[k] ?? null])) };
@@ -195,6 +210,8 @@ function manageKeepAlive() {
 function render() {
   $("#apiKeyBanner").classList.toggle("hidden", !!data.apiKey);
   renderAutopilot();
+  applyMode(); // after renderAutopilot: it decides which single-site controls show
+  renderCategory();
   renderCapture();
   renderSiteSelects();
   renderFiles();
@@ -266,7 +283,10 @@ function sitesByRecency() {
   for (const f of data.handoffFiles) bump(f.siteUrl, f.createdAt);
   for (const s of data.sites) bump(s.siteUrl, s.lastCapturedAt || s.firstCapturedAt);
   if (data.autopilot?.siteUrl) bump(data.autopilot.siteUrl, data.autopilot.startedAt);
-  return [...latest.entries()].sort((a, b) => b[1] - a[1]).map(([site]) => site);
+  return [...latest.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([site]) => site)
+    .filter((site) => (uiMode === "category") === isCategoryKey(site)); // each area lists only its own
 }
 
 function renderSiteSelects() {
@@ -300,6 +320,21 @@ document.querySelectorAll(".site-select").forEach((select) =>
 
 function renderFiles() {
   const siteUrl = selectedSite;
+  if (siteUrl && isCategoryKey(siteUrl)) {
+    // Category: its research & tribunal documents, then every crawled screen grouped by site.
+    const docs = (data.categoryDocs?.[siteUrl] || []).slice().sort((a, b) => a.title.localeCompare(b.title));
+    const specs = data.specFiles.filter((x) => x.categoryKey === siteUrl);
+    const bySite = {};
+    for (const x of specs) (bySite[x.categoryProduct || x.siteUrl] ||= []).push(x);
+    const docItem = (d) =>
+      el("li", { class: "item" }, el("div", { class: "main", onclick: () => openReader(d.title, fmtDate(d.savedAt), d.content) }, el("div", { class: "title" }, d.title), el("div", { class: "sub" }, `${Math.round(d.content.length / 100) / 10}k chars`)), el("button", { class: "small", title: "Copy", onclick: () => copyText(d.content) }, "Copy"));
+    $("#filesList").replaceChildren(
+      ...(docs.length ? [el("h3", { class: "section-title" }, "Research & tribunal"), el("ul", { class: "list" }, docs.map(docItem))] : []),
+      ...Object.entries(bySite).flatMap(([name, list]) => [el("h3", { class: "section-title" }, `${name} — ${list.length} screen(s)`), el("ul", { class: "list" }, list.map(specItem))]),
+      ...(!docs.length && !specs.length ? [el("div", { class: "empty" }, "Nothing researched for this category yet.")] : [])
+    );
+    return;
+  }
   const specs = data.specFiles.filter((s) => s.siteUrl === siteUrl).sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
   $("#filesList").replaceChildren(
     specs.length
@@ -318,7 +353,9 @@ function sizeLabel(f) {
 function renderHandoff() {
   const siteUrl = selectedSite;
   const job = siteUrl ? data.jobs[`handoff:${siteUrl}`] : null;
-  const count = data.specFiles.filter((s) => s.siteUrl === siteUrl).length;
+  const count = isCategoryKey(siteUrl || "")
+    ? (data.categoryDocs?.[siteUrl] || []).filter((d) => /blueprint/i.test(d.title)).length
+    : data.specFiles.filter((s) => s.siteUrl === siteUrl).length;
   const btn = $("#generateBtn");
   btn.disabled = !siteUrl || !count || job?.status === "running";
   $("#downloadAllBtn").classList.toggle("hidden", !data.handoffFiles.some((f) => f.siteUrl === siteUrl && !f.raw));
@@ -464,7 +501,11 @@ function renderAutopilot() {
   const base = ap.usageAtStart || now; // runs started before this field existed: count from here
   const k = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
   const usage = ` · this run: ${now.calls - (base.calls || 0)} Claude calls, ${k(now.input - base.input)} in / ${k(now.output - base.output)} out tokens`;
-  const parts = [`${(ex.pages || []).length} screens explored, ${(ex.queue || []).length} queued`];
+  const cm = ap.category?.members || [];
+  const parts =
+    ap.mode === "category"
+      ? [`${cm.filter((m) => m.status === "done").length}/${cm.length || ap.category?.sites?.length || 0} sites explored, ${cm.reduce((n, m) => n + (m.explore?.pages?.length || 0), 0)} screens`]
+      : [`${(ex.pages || []).length} screens explored, ${(ex.queue || []).length} queued`];
   if (b.totalSteps) parts.push(`step ${Math.min(b.step + 1, b.totalSteps)} of ${b.totalSteps}${b.rounds ? ` (round ${b.rounds})` : ""}`);
   $("#apCounters").textContent = `${parts.join(" · ")} · ${mins} min${usage}`;
 
@@ -701,3 +742,110 @@ $("#wipeAllBtn").addEventListener("click", async () => {
     toast(e.message);
   }
 });
+
+// ---------------------------------------------------------------------------- category clone area
+
+const CAT_PHASES = {
+  "cat-propose": "Finding sites to research",
+  "cat-confirm": "Confirm the sites",
+  "cat-explore": "Exploring the sites",
+  "cat-digest": "Digesting each site",
+  "cat-tribunal": "Tribunal",
+};
+Object.assign(PHASES, CAT_PHASES);
+
+function applyMode() {
+  document.querySelectorAll(".modes button").forEach((b) => b.classList.toggle("active", b.dataset.mode === uiMode));
+  const cat = uiMode === "category";
+  const capBtn = document.querySelector('[role=tab][data-tab="capture"]');
+  const catBtn = document.querySelector('[role=tab][data-tab="category"]');
+  capBtn.classList.toggle("hidden", cat);
+  catBtn.classList.toggle("hidden", !cat);
+  const active = document.querySelector(".tabs button.active");
+  if (active?.classList.contains("hidden")) (cat ? catBtn : capBtn).click();
+  // The Autopilot card (status, log, chat, Pause/Resume) lives in whichever area is showing.
+  const card = $("#apCard");
+  const home = cat ? $("#catApSlot") : $("#tab-capture");
+  if (card.parentElement !== home) home.prepend(card);
+  // Single-site start controls only in the site area.
+  for (const id of ["#apStart", "#apInstructions", "#apInstructionsLabel", "#apIntro"]) if (cat) $(id).classList.add("hidden");
+}
+
+document.querySelectorAll(".modes button").forEach((b) =>
+  b.addEventListener("click", () => {
+    uiMode = b.dataset.mode;
+    try {
+      localStorage.setItem("uiMode", uiMode);
+    } catch {
+      /* ignore */
+    }
+    selectedSite = null;
+    lastMostRecent = undefined;
+    render();
+  })
+);
+
+let catSiteKey = null;
+function renderCategory() {
+  const ap = data.autopilot;
+  const run = ap?.mode === "category" ? ap : null;
+  const c = run?.category;
+  const busy = ap && ["running", "paused", "waiting"].includes(ap.status);
+  $("#catStart").disabled = !!busy || !data.apiKey;
+  $("#catStart").title = busy ? "Autopilot is busy — Stop (and Clear) its current run first." : "";
+  $("#catStartCard").classList.toggle("hidden", !!(run && busy));
+
+  // Confirm the suggested sites one at a time.
+  const confirming = run && run.phase === "cat-confirm" && run.status === "waiting" && c.confirmIndex >= 0;
+  $("#catConfirm").classList.toggle("hidden", !confirming);
+  if (confirming) {
+    const site = c.sites[c.confirmIndex];
+    $("#catConfirmCount").textContent = `(${c.confirmIndex + 1} of ${c.sites.length})`;
+    $("#catSiteName").textContent = site.product + (site.fromDataset ? "" : " (not in the dataset)");
+    $("#catSiteWhy").textContent = site.why || "";
+    const key = `${run.startedAt}:${c.confirmIndex}`;
+    if (catSiteKey !== key) {
+      catSiteKey = key;
+      $("#catSiteUrl").value = site.url;
+    }
+    $("#catSiteList").replaceChildren(
+      ...c.sites.map((x, i) => el("li", { class: x.decision === "yes" ? "yes" : x.decision === "no" ? "no" : i === c.confirmIndex ? "current" : "" }, `${x.product} — ${x.url}`))
+    );
+  }
+
+  // Log in / sign up on the current site, then explore it.
+  const m = run?.phase === "cat-explore" ? c.members[c.memberIndex] : null;
+  const login = !!(m && m.status === "login" && run.status === "waiting");
+  $("#catLogin").classList.toggle("hidden", !login);
+  if (login) $("#catLoginName").textContent = `${m.product} (${c.memberIndex + 1} of ${c.members.length})`;
+
+  // Research & tribunal documents for the category shown in the Files tab or the current run.
+  const key = run?.siteUrl || (isCategoryKey(selectedSite || "") ? selectedSite : null);
+  const docs = (key && data.categoryDocs?.[key]) || [];
+  $("#catDocsCard").classList.toggle("hidden", !docs.length);
+  $("#catDocs").replaceChildren(
+    ...docs
+      .slice()
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((d) => el("li", { class: "item" }, el("div", { class: "main", onclick: () => openReader(d.title, `${new URL(key).hostname} · ${fmtDate(d.savedAt)}`, d.content) }, el("div", { class: "title" }, d.title), el("div", { class: "sub" }, `${Math.round(d.content.length / 100) / 10}k chars`)), el("button", { class: "small", title: "Copy", onclick: () => copyText(d.content) }, "Copy")))
+  );
+}
+
+$("#catStart").addEventListener("click", async () => {
+  const name = $("#catName").value.trim();
+  if (!name) return toast("Type a category first, e.g. “forms and surveys”.");
+  const ok = await askConfirm(
+    `Category clone: “${name}”.\n\n• I'll suggest about ${$("#catCount").value} leading sites from the market dataset — you confirm each one.\n• For each site I open it, you log in / sign up, then I explore it (clicking and typing without submitting, like the single-site Autopilot).\n• Then a tribunal compares them all and a judge writes the blueprint, and I build that app in Scram.\n\nIt uses your Anthropic API credits (a lot more than one site) and your Scram credits.`,
+    { ok: "Start" }
+  );
+  if (!ok) return;
+  try {
+    await send("categoryStart", { name, instructions: $("#catInstructions").value.trim(), siteCount: Number($("#catCount").value) });
+  } catch (e) {
+    toast(e.message);
+  }
+});
+$("#catAccept").addEventListener("click", () => send("categoryDecide", { index: data.autopilot?.category?.confirmIndex, accept: true, url: $("#catSiteUrl").value.trim() }).catch((e) => toast(e.message)));
+$("#catSkip").addEventListener("click", () => send("categoryDecide", { index: data.autopilot?.category?.confirmIndex, accept: false }).catch((e) => toast(e.message)));
+$("#catLoggedIn").addEventListener("click", () => send("categoryLoggedIn").catch((e) => toast(e.message)));
+$("#catSkipSite").addEventListener("click", () => send("categorySkipSite").catch((e) => toast(e.message)));

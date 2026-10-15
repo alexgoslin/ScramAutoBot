@@ -202,3 +202,13 @@ select {
 .wipe-row { margin-top: 8px; flex-wrap: wrap; gap: 6px; }
 button.danger { color: var(--err, #b91c1c); border-color: var(--err, #b91c1c); }
 button.primary.danger-confirm { background: var(--err, #b91c1c); border-color: var(--err, #b91c1c); color: #fff; }
+
+/* Top-level areas: Site clone / Category clone */
+.modes { display: flex; gap: 6px; padding: 8px 12px 0; }
+.modes button { flex: 1; min-width: 0; font: inherit; font-size: 12px; font-weight: 600; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
+.modes button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cat-list { margin: 6px 0 0; padding-left: 18px; }
+.cat-list li.yes { color: var(--accent); }
+.cat-list li.no { text-decoration: line-through; opacity: 0.6; }
+.cat-list li.current { font-weight: 600; }
+#catName, #catSiteUrl, #catCount { font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 100%; box-sizing: border-box; }

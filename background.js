@@ -6,6 +6,7 @@ import * as scramAttach from "./lib/scram-attach.js";
 import * as chatTest from "./lib/scram-chat-test.js";
 import * as skillsTest from "./lib/skills-test.js";
 import * as scramExplorer from "./lib/scram-explorer.js";
+import * as categoryLib from "./lib/category.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
@@ -179,7 +180,8 @@ async function uncompleteStep(siteUrl, stepNumber) {
 const handlers = {
   ping: async () => "pong",
   capture: ({ tabId }) => capturePage(tabId),
-  generateHandoff: ({ siteUrl }) => generateHandoff(siteUrl),
+  generateHandoff: async ({ siteUrl }) =>
+    categoryLib.isCategoryKey(siteUrl) ? generateHandoff(siteUrl, await categoryLib.handoffInputs(siteUrl)) : generateHandoff(siteUrl),
   startBuild: ({ siteUrl }) => startBuild(siteUrl),
   sendStep: ({ siteUrl, stepNumber }) => sendStep(siteUrl, stepNumber),
   completeStep: ({ siteUrl, stepNumber }) => completeStep(siteUrl, stepNumber),
@@ -228,6 +230,11 @@ const handlers = {
   // Autopilot
   autopilotStart: ({ tabId, instructions }) => autopilot.start({ tabId, instructions }),
   autopilotBuildFrom: ({ siteUrl, instructions }) => autopilot.startBuildFrom({ siteUrl, instructions }),
+  // Category cloning (separate area of the side panel; single-site Autopilot is unchanged)
+  categoryStart: ({ name, instructions, siteCount }) => autopilot.startCategory({ name, instructions, siteCount }),
+  categoryDecide: ({ index, accept, url }) => autopilot.categoryDecide({ index, accept, url }),
+  categoryLoggedIn: () => autopilot.categoryLoggedIn(),
+  categorySkipSite: () => autopilot.categorySkipSite(),
   autopilotStop: () => autopilot.stop(),
   autopilotPause: () => autopilot.pause(),
   autopilotResume: () => autopilot.resume(),

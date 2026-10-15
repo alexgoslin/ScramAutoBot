@@ -16,7 +16,14 @@
     No Anthropic API key set. <a href="#" id="bannerOptions">Add one in Settings</a>.
   </div>
 
+  <!-- Two areas: single-site cloning (as before) and category cloning (several sites → tribunal → one app) -->
+  <nav class="modes" aria-label="What to clone">
+    <button type="button" data-mode="site" class="active">🌐 Site clone</button>
+    <button type="button" data-mode="category">🗂 Category clone</button>
+  </nav>
+
   <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="category" class="hidden">Category</button>
     <button role="tab" data-tab="capture" class="active">Capture</button>
     <button role="tab" data-tab="files">Files</button>
     <button role="tab" data-tab="handoff">Handoff</button>
@@ -26,7 +33,7 @@
   <main>
     <!-- CAPTURE -->
     <section id="tab-capture" class="panel active">
-      <div class="card autopilot">
+      <div class="card autopilot" id="apCard">
         <div class="row between">
           <div class="label">Autopilot</div>
           <span id="apBadge" class="badge">idle</span>
@@ -85,6 +92,46 @@
 
       <h3 class="section-title">Captured for <span id="currentSite">this site</span></h3>
       <ul id="siteSpecList" class="list"></ul>
+    </section>
+
+    <!-- CATEGORY (category clone area) -->
+    <section id="tab-category" class="panel">
+      <div class="card" id="catStartCard">
+        <div class="label">Category clone</div>
+        <p class="muted small-text">Name a kind of app (e.g. “forms and surveys”). I suggest leading sites from the market dataset — you confirm each one — then I explore every site (you log in / sign up first), compare them all, hold a tribunal (organiser → FOR / impartial / AGAINST → judge) and build ONE app from the judge's blueprint in Scram.</p>
+        <label class="label" for="catName">Category / kind of app</label>
+        <input id="catName" type="text" placeholder="e.g. forms and surveys" autocomplete="off" />
+        <label class="label" for="catCount">How many sites to compare</label>
+        <select id="catCount"><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+        <label class="label" for="catInstructions">Instructions (optional)</label>
+        <textarea id="catInstructions" rows="3" placeholder="e.g. Focus on building and sharing forms and viewing responses; skip payments and enterprise features."></textarea>
+        <button id="catStart" class="primary block" type="button">🗂 Start category clone</button>
+      </div>
+      <div class="card hidden" id="catConfirm">
+        <div class="label">Confirm the sites to research <span id="catConfirmCount" class="muted"></span></div>
+        <div id="catSiteName" class="page-title"></div>
+        <div id="catSiteWhy" class="muted small-text"></div>
+        <label class="label" for="catSiteUrl">Address to explore</label>
+        <input id="catSiteUrl" type="text" autocomplete="off" spellcheck="false" />
+        <div class="row">
+          <button id="catAccept" class="primary small" type="button">✅ Research this site</button>
+          <button id="catSkip" class="small" type="button">⏭ Skip</button>
+        </div>
+        <ol id="catSiteList" class="small-text cat-list"></ol>
+      </div>
+      <div class="card hidden" id="catLogin">
+        <div class="label">Log in to <span id="catLoginName"></span></div>
+        <p class="small-text">I opened it in a tab. Log in there — or create an account / free trial if you don't have one — and go to the app's main screen (e.g. your dashboard). Then:</p>
+        <div class="row">
+          <button id="catLoggedIn" class="primary small" type="button">🔑 I'm logged in — explore it</button>
+          <button id="catSkipSite" class="small" type="button">⏭ Skip this site</button>
+        </div>
+      </div>
+      <div class="card hidden" id="catDocsCard">
+        <div class="label">Research &amp; tribunal</div>
+        <ul id="catDocs" class="list"></ul>
+      </div>
+      <div id="catApSlot"></div>
     </section>
 
     <!-- FILES -->
