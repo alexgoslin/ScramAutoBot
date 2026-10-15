@@ -14,6 +14,9 @@
 
   const start = () => {
     if (!wanted) return;
+    // Creating or resuming audio before the page has had a click or key press only gets blocked,
+    // with a warning in the console, so wait for one.
+    if (!navigator.userActivation?.hasBeenActive) return;
     try {
       if (!ctx) {
         ctx = new AudioContext();
@@ -40,7 +43,7 @@
     else stop();
   };
 
-  for (const type of ["pointerdown", "keydown"]) window.addEventListener(type, start, true);
+  for (const type of ["pointerdown", "pointerup", "keydown", "click", "touchend"]) window.addEventListener(type, start, true);
 
   chrome.storage.local.get({ audioKeepAlive: true }, (s) => apply(s.audioKeepAlive));
   chrome.storage.onChanged.addListener((changes) => {
