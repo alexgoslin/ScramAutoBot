@@ -227,6 +227,7 @@ const handlers = {
 
   // Autopilot
   autopilotStart: ({ tabId, instructions }) => autopilot.start({ tabId, instructions }),
+  autopilotBuildFrom: ({ siteUrl, instructions }) => autopilot.startBuildFrom({ siteUrl, instructions }),
   autopilotStop: () => autopilot.stop(),
   autopilotPause: () => autopilot.pause(),
   autopilotResume: () => autopilot.resume(),

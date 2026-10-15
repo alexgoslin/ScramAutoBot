@@ -117,8 +117,10 @@
       <div class="card">
         <label class="label" for="buildSite">Site</label>
         <select id="buildSite" class="site-select"></select>
-        <button id="buildBtn" class="primary block">Build in Scram</button>
+        <button id="buildBtn" class="primary block">🚀 Build in Scram (Autopilot)</button>
+        <p class="muted small-text">Builds this site again in a new Scram project, from the step files it already has — no new crawl or questions. Autopilot does everything (project, Run mode, every step, final review) and you follow it, pause it and chat with it in the Autopilot card on the Capture tab.</p>
         <div class="row">
+          <button id="manualBuildBtn" class="ghost small">Manual build (paste steps yourself)</button>
           <button id="resetBuildBtn" class="ghost small">Reset progress</button>
           <button id="stopBuildBtn" class="ghost small">Stop build</button>
         </div>
@@ -128,7 +130,7 @@
         <a href="../tools/skills-test.html" target="_blank" class="small-text">🧪 Skills test — watch it do everything it knows in Scram</a>
         <a href="../tools/chat-test.html" target="_blank" class="small-text">🧪 Test plans &amp; questions in Scram</a>
         <p class="muted small-text">
-          “Build in Scram” opens Scram. Open or create your project there, then press “Send to Scram” on a step:
+          “Manual build” opens Scram. Open or create your project there, then press “Send to Scram” on a step:
           it switches Scram to Run mode and pastes the step into the project's AI chat. When Scram finishes a step,
           press Done and the next one is pasted.
         </p>

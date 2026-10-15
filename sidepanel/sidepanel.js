@@ -359,8 +359,11 @@ function renderBuild() {
   const done = new Set(progress.completedSteps);
   const isActive = data.activeBuild === siteUrl;
 
-  $("#buildBtn").disabled = !steps.length;
-  $("#buildBtn").textContent = done.size && isActive ? "Re-open Scram & continue" : "Build in Scram";
+  const apBusy = data.autopilot && ["running", "paused", "waiting"].includes(data.autopilot.status);
+  $("#buildBtn").disabled = !steps.length || apBusy;
+  $("#buildBtn").title = apBusy ? "Autopilot is busy with another run — Stop (and Clear) it on the Capture tab first." : "";
+  $("#manualBuildBtn").disabled = !steps.length;
+  $("#manualBuildBtn").textContent = done.size && isActive ? "Re-open Scram & continue (manual)" : "Manual build (paste steps yourself)";
   $("#resetBuildBtn").disabled = !steps.length;
   $("#stopBuildBtn").disabled = !isActive;
 
@@ -623,7 +626,29 @@ $("#downloadAllBtn").addEventListener("click", async () => {
   toast(`Downloaded ${files.length} file(s)`);
 });
 
+// Autopilot build from the existing step files (no crawl / questions / new steps).
 $("#buildBtn").addEventListener("click", async () => {
+  const siteUrl = selectedSite;
+  if (!siteUrl) return;
+  const n = data.handoffFiles.filter((f) => f.siteUrl === siteUrl && f.fileType === "step").length;
+  const ok = await askConfirm(
+    `Autopilot will build ${host(siteUrl)} in Scram from its ${n} existing step files:\n\n` +
+      `• open Scram and create a new project,\n• switch on Run mode and drive Scram's AI through every step (answering its questions, keeping it testing),\n• then test the finished app itself and send Scram's AI a fix list.\n\n` +
+      `No new crawl, questions or step files. It uses your Anthropic API and Scram credits. Follow it, pause it or chat with it in the Autopilot card on the Capture tab.`,
+    { ok: "Start building" }
+  );
+  if (!ok) return;
+  try {
+    await send("autopilotBuildFrom", { siteUrl, instructions: $("#apInstructions").value.trim() });
+    document.querySelector('[role=tab][data-tab="capture"]')?.click(); // show the Autopilot card
+    toast("Autopilot is building — follow it here.");
+  } catch (e) {
+    setStatus($("#buildStatus"), { status: "error", message: e.message });
+  }
+});
+
+// The old manual build: open Scram and paste each step yourself.
+$("#manualBuildBtn").addEventListener("click", async () => {
   const siteUrl = selectedSite;
   if (!siteUrl) return;
   const steps = data.handoffFiles.filter((f) => f.siteUrl === siteUrl && f.fileType === "step").sort((a, b) => a.stepNumber - b.stepNumber);
