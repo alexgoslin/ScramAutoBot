@@ -829,8 +829,35 @@ function renderCategory() {
       .sort((a, b) => a.title.localeCompare(b.title))
       .map((d) => el("li", { class: "item" }, el("div", { class: "main", onclick: () => openReader(d.title, `${new URL(key).hostname} · ${fmtDate(d.savedAt)}`, d.content) }, el("div", { class: "title" }, d.title), el("div", { class: "sub" }, `${Math.round(d.content.length / 100) / 10}k chars`)), el("button", { class: "small", title: "Copy", onclick: () => copyText(d.content) }, "Copy")))
   );
+  // Re-run the tribunal on the saved research — not while a run is busy with this category.
+  const job = key ? data.jobs[`handoff:${key}`] : null;
+  const keyBusy = !!run && run.siteUrl === key && ["running", "paused", "waiting"].includes(run.status);
+  const canRetry = docs.some((d) => /^Digest — /.test(d.title));
+  $("#catRetribunal").classList.toggle("hidden", !canRetry || keyBusy);
+  $("#catRetribunal").disabled = job?.status === "running";
+  $("#catRetribunal").textContent = job?.status === "running" ? "⚖️ Tribunal running…" : "⚖️ Re-run the tribunal";
+  $("#catRetribunal").dataset.key = key || "";
+  setStatus($("#catRetribStatus"), canRetry && !keyBusy ? job : null);
 }
 
+$("#catRetribunal").addEventListener("click", async () => {
+  const key = $("#catRetribunal").dataset.key;
+  if (!key) return;
+  const ok = await askConfirm(
+    "Re-run the tribunal on the research already saved (no re-crawl)?\n\n• The organiser sets out the product vision and points of debate, the three advocates argue, the judge writes a blueprint, a product critic reviews it, and the judge revises it.\n• Then the build steps are rewritten from the new blueprint (the old tribunal documents and steps are replaced).\n\nIt uses a fair amount of Anthropic API credit.",
+    { ok: "Re-run" }
+  );
+  if (!ok) return;
+  data.jobs[`handoff:${key}`] = { status: "running", message: "Re-running the tribunal…", startedAt: Date.now() };
+  render();
+  manageKeepAlive();
+  try {
+    const files = await send("categoryRetribunal", { siteUrl: key });
+    toast(`New blueprint — ${files.filter((f) => f.fileType === "step").length} steps written`);
+  } catch (e) {
+    toast(e.message);
+  }
+});
 $("#catStart").addEventListener("click", async () => {
   const name = $("#catName").value.trim();
   if (!name) return toast("Type a category first, e.g. “forms and surveys”.");

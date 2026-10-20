@@ -231,6 +231,22 @@ const handlers = {
   autopilotStart: ({ tabId, instructions }) => autopilot.start({ tabId, instructions }),
   autopilotBuildFrom: ({ siteUrl, instructions }) => autopilot.startBuildFrom({ siteUrl, instructions }),
   // Category cloning (separate area of the side panel; single-site Autopilot is unchanged)
+  // Re-run the tribunal from the saved digests (no re-crawl), then rewrite the build steps.
+  categoryRetribunal: async ({ siteUrl }) => {
+    if (!categoryLib.isCategoryKey(siteUrl || "")) throw new Error("Pick a category first.");
+    const ap = await store.get("autopilot", null);
+    if (ap && ap.siteUrl === siteUrl && ["running", "paused", "waiting"].includes(ap.status)) throw new Error("Autopilot is working on this category — press Stop first.");
+    const jobKey = `handoff:${siteUrl}`;
+    const startedAt = Date.now();
+    await store.setJob(jobKey, { status: "running", message: "Re-running the tribunal…", startedAt });
+    try {
+      await categoryLib.retribunal(siteUrl, { settings: await store.getSettings(), log: (m) => store.setJob(jobKey, { status: "running", message: m, startedAt }) });
+    } catch (e) {
+      await store.setJob(jobKey, { status: "error", message: e.message || String(e) });
+      throw e;
+    }
+    return generateHandoff(siteUrl, await categoryLib.handoffInputs(siteUrl));
+  },
   categoryStart: ({ name, instructions, siteCount }) => autopilot.startCategory({ name, instructions, siteCount }),
   categoryDecide: ({ index, accept, url }) => autopilot.categoryDecide({ index, accept, url }),
   categoryLoggedIn: () => autopilot.categoryLoggedIn(),
