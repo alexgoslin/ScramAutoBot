@@ -1042,6 +1042,175 @@
     return pick ? { ...pick, how: "position", title: info.title } : null;
   }
 
+  // ---------------------------------------------------------------- browser-use toolset helpers
+  // An accessibility-tree view of the page with stable refs ("ref_N", never renumbered), like
+  // the read_page / find tools Claude in Chrome uses.
+  let nextRef = 1;
+  const refOf = (el) => {
+    if (!el.dataset.sabRef) el.dataset.sabRef = `ref_${nextRef++}`;
+    return el.dataset.sabRef;
+  };
+  const byRef = (ref) => document.querySelector(`[data-sab-ref="${CSS.escape(String(ref))}"]`);
+  const IMPLICIT = { A: "link", BUTTON: "button", SELECT: "combobox", TEXTAREA: "textbox", SUMMARY: "button", IMG: "img", IFRAME: "iframe", DIALOG: "dialog", NAV: "navigation", MAIN: "main", H1: "heading", H2: "heading", H3: "heading", H4: "heading", H5: "heading", H6: "heading", LABEL: "label", TABLE: "table", TR: "row", TH: "columnheader", TD: "cell", UL: "list", OL: "list", LI: "listitem" };
+  function roleOfEl(el) {
+    const r = el.getAttribute("role");
+    if (r) return r;
+    if (el.tagName === "INPUT") return { checkbox: "checkbox", radio: "radio", range: "slider", button: "button", submit: "button", search: "searchbox" }[el.type] || "textbox";
+    if (el.isContentEditable && el.getAttribute("contenteditable") !== null) return "textbox";
+    return IMPLICIT[el.tagName] || "";
+  }
+  const pointerish = (el) => {
+    try {
+      return getComputedStyle(el).cursor === "pointer" && !(el.parentElement && getComputedStyle(el.parentElement).cursor === "pointer");
+    } catch {
+      return false;
+    }
+  };
+  const inView = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+  };
+  const ownText = (el) => clean([...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" "));
+  function lineFor(el, allowHeader) {
+    const interactive = el.matches(INTERACTIVE) || pointerish(el);
+    let role = roleOfEl(el);
+    let name = "";
+    if (interactive) {
+      role ||= "clickable";
+      name = labelOf(el);
+    } else if (/^(heading|img|iframe|dialog|alertdialog|menu|listbox|tooltip|navigation|main|tablist|columnheader|cell|label)$/.test(role)) {
+      name = role === "img" ? clean(el.getAttribute("alt") || el.getAttribute("aria-label") || "") : role === "iframe" ? clean(el.getAttribute("title") || el.getAttribute("name") || el.src || "") : clean(el.getAttribute("aria-label") || (/heading|columnheader|cell|label/.test(role) ? el.innerText : "")).slice(0, 120);
+    } else {
+      const t = ownText(el);
+      if (!t) return null;
+      role = "text";
+      name = t.slice(0, 200);
+    }
+    const bits = [];
+    if (/^H[1-6]$/.test(el.tagName)) bits.push(`level=${el.tagName[1]}`);
+    if (el.disabled || el.getAttribute("aria-disabled") === "true") bits.push("disabled");
+    const checked = el.type === "checkbox" || el.type === "radio" ? el.checked : el.getAttribute("aria-checked");
+    if (checked != null && checked !== "") bits.push(`checked=${checked}`);
+    if (el.getAttribute("aria-expanded")) bits.push(`expanded=${el.getAttribute("aria-expanded")}`);
+    if (el.getAttribute("aria-selected") === "true" || el.getAttribute("aria-current")) bits.push("selected");
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) && el.type !== "password" && el.value) bits.push(`value="${clean(String(el.value)).slice(0, 80)}"`);
+    if (el.getAttribute("placeholder") && !el.value) bits.push(`placeholder="${clean(el.getAttribute("placeholder")).slice(0, 60)}"`);
+    if (el.tagName === "A" && hrefOf(el)) bits.push(`href="${hrefOf(el)}"`);
+    if (interactive && isHeaderControl(el)) bits.push(allowHeader ? "chat title row" : "OFF-LIMITS section header");
+    return `${role} "${name.replace(/"/g, "'")}" [${refOf(el)}]${bits.length ? ` (${bits.join(", ")})` : ""}`;
+  }
+  function a11yTree({ filter = "", ref = "", depth = 15, allowHeader = false, maxChars = 50000 } = {}) {
+    const root = ref ? byRef(ref) : document.body;
+    if (!root) return { error: `${ref} is stale or not found on the current page. Re-read the page to get fresh references.` };
+    const out = [];
+    let chars = 0;
+    let truncated = false;
+    const walk = (el, level) => {
+      if (truncated || level > depth) return;
+      if (el.closest?.(OUR_UI) || el.dataset?.sabSkip) return;
+      if (["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "SVG", "PATH"].includes(el.tagName?.toUpperCase())) {
+        if (el.tagName.toUpperCase() !== "SVG" || !pointerish(el)) return;
+      }
+      const vis = isVisible(el);
+      if (!vis) {
+        try {
+          if (getComputedStyle(el).display === "none") return;
+        } catch {
+          return;
+        }
+      }
+      let next = level;
+      if (vis && (filter === "all" || inView(el))) {
+        const interactive = el.matches(INTERACTIVE) || pointerish(el);
+        if (filter !== "interactive" || interactive) {
+          const line = lineFor(el, allowHeader);
+          if (line) {
+            const s = `${"  ".repeat(level)}${line}`;
+            if (chars + s.length > maxChars) {
+              truncated = true;
+              return;
+            }
+            out.push(s);
+            chars += s.length + 1;
+            next = level + 1;
+            if (interactive && !["textbox", "combobox", "listbox", "menu", "dialog"].includes(roleOfEl(el))) {
+              // A control's own text is in its name already: don't list its inner text nodes.
+              for (const c of el.children) if (c.matches?.(INTERACTIVE) || pointerish(c)) walk(c, next);
+              return;
+            }
+          }
+        }
+      }
+      for (const c of el.children) walk(c, next);
+    };
+    walk(root, 0);
+    return { text: out.join("\n") + (truncated ? `\n[Output truncated at ${maxChars} characters — use filter "interactive" or a container ref to narrow it.]` : ""), url: location.href, title: document.title };
+  }
+  function findRefs(query, { allowHeader = false } = {}) {
+    const words = clean(query).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1);
+    const lines = a11yTree({ filter: "all", allowHeader, maxChars: 400000 }).text.split("\n").map((l) => l.trim()).filter(Boolean);
+    const scored = lines
+      .map((l) => {
+        const low = l.toLowerCase();
+        const score = words.reduce((n, w) => n + (low.includes(w) ? (new RegExp(`\\b${w}\\b`).test(low) ? 2 : 1) : 0), 0) + (/^(button|link|textbox|tab|menuitem|clickable|combobox|checkbox|switch|option)/.test(low) ? 0.5 : 0);
+        return { l, score };
+      })
+      .filter((x) => x.score >= 1)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20);
+    return { text: scored.map((x) => x.l).join("\n") };
+  }
+  // The element a ref points at, scrolled into view: its centre and what it is (for safety checks).
+  function refTarget(ref) {
+    const el = byRef(ref);
+    if (!el || !isVisible(el)) return null;
+    el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, ...guardInfo(el) };
+  }
+  function guardInfo(el) {
+    const ctl = el.closest?.(INTERACTIVE) || el;
+    const chatInput = findChatInput();
+    const chatEl = chatInput ? byId(chatInput) : null;
+    return { label: labelOf(ctl).slice(0, 120), role: roleOfEl(ctl), tag: ctl.tagName.toLowerCase(), header: isHeaderControl(ctl) || isHeaderControl(el) || false, chatBox: !!(chatEl && (chatEl === ctl || chatEl.contains(el) || el.contains?.(chatEl))), iframe: el.tagName === "IFRAME" };
+  }
+  function elementAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    return el ? guardInfo(el) : null;
+  }
+  function focusedInfo() {
+    const el = document.activeElement;
+    return el && el !== document.body ? guardInfo(el) : null;
+  }
+  function formInput(ref, value) {
+    const el = byRef(ref);
+    if (!el) return { error: `${ref} is stale or not found on the current page. Re-read the page to get fresh references.` };
+    el.scrollIntoView({ block: "nearest" });
+    if (el.tagName === "SELECT") {
+      const opt = [...el.options].find((o) => o.value === String(value) || clean(o.text) === clean(String(value)));
+      if (!opt) return { error: `No option "${value}" in ${ref}. Options: ${[...el.options].map((o) => clean(o.text)).join(", ")}` };
+      el.value = opt.value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return { ok: true, text: `Selected "${clean(opt.text)}" in ${ref}.` };
+    }
+    if (el.type === "checkbox" || el.type === "radio" || /checkbox|switch|radio/.test(el.getAttribute("role") || "")) {
+      const want = value === true || value === "true";
+      const now = el.type ? el.checked : el.getAttribute("aria-checked") === "true";
+      if (now !== want) el.click();
+      return { ok: true, text: `Set ${ref} to ${want}.` };
+    }
+    const r = typeText(idOf(el), String(value ?? ""));
+    return r.ok ? { ok: true, text: `Set ${ref} to "${String(value).slice(0, 80)}".` } : { error: `Couldn't type into ${ref}.` };
+  }
+  function scrollToRef(ref) {
+    const el = byRef(ref);
+    if (!el) return { error: `${ref} is stale or not found on the current page. Re-read the page to get fresh references.` };
+    el.scrollIntoView({ block: "center", inline: "nearest" });
+    return { ok: true };
+  }
+  const viewport = () => ({ w: innerWidth, h: innerHeight, dpr: devicePixelRatio, url: location.href, title: document.title });
+
   // Scram project overview (after clicking "More"): the project's name, shown above
   // "Describe your project…". Returns a click target for it.
   function projectNameTarget() {
@@ -1073,6 +1242,7 @@
   }
 
   window.__sabDom = {
+    a11yTree, findRefs, refTarget, elementAt, focusedInfo, formInput, scrollToRef, viewport,
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, chatHeaderInfo, newChatTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,

@@ -12,6 +12,7 @@ async function load() {
   $("#model").value = settings.model;
   $("#operatorModel").value = settings.operatorModel || "";
   $("#operatorEffort").value = settings.operatorEffort || "high";
+  $("#operatorBrowserTools").checked = settings.operatorBrowserTools !== false;
   $("#specMaxTokens").value = settings.specMaxTokens;
   $("#handoffMaxTokens").value = settings.handoffMaxTokens;
   $("#autoSubmit").checked = settings.autoSubmit;
@@ -34,6 +35,7 @@ function readSettings() {
     model: $("#model").value.trim() || DEFAULT_SETTINGS.model,
     operatorModel: $("#operatorModel").value.trim() || DEFAULT_SETTINGS.operatorModel,
     operatorEffort: ["medium", "high", "xhigh"].includes($("#operatorEffort").value) ? $("#operatorEffort").value : "high",
+    operatorBrowserTools: $("#operatorBrowserTools").checked,
     specMaxTokens: int("#specMaxTokens", DEFAULT_SETTINGS.specMaxTokens),
     handoffMaxTokens: int("#handoffMaxTokens", DEFAULT_SETTINGS.handoffMaxTokens),
     autoSubmit: $("#autoSubmit").checked,
