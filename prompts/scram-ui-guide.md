@@ -67,7 +67,7 @@ Built from a 303-action exploration of the Scram editor (Oct 2026) plus the user
 ## The AI chat (Scram's AI)
 
 - Type in **"Ask Claude…"**, send with the arrow (`aria-label="Send"`) or Enter. Attach files with the paperclip (`aria-label="Attach files"`): it opens a file chooser; files appear as chips in the box.
-- The chat's title row (chat name in quotes) has icons: plans list, **+ (new chat)**, chat history, **^ (collapse)** — don't click them. If the chat is collapsed, click ^ once to re-open.
+- The chat's title row (chat name in quotes) has icons: plans list, **+ (new chat)**, chat history, **^ (collapse)** — don't click them, except the **+** when a task explicitly says to start a new chat (that opens a fresh, empty chat). Never re-open old chats from the history list. If the chat is collapsed, click ^ once to re-open.
 - Scram's AI usually **proposes a plan** first (a plan card with "Read more" and an **"Approve plan"** button) and won't build until it's approved.
 - It asks **questions** as forms: option buttons, a **"Write my own answer"** box, and "Submit answers". It may offer "Open Run and let me test it" — don't pick that; switch Run on yourself and answer that Run mode is on.
 - While it works it shows progress lines ("85s · 9 steps …") and a Stop control; when finished it summarises what it did.

@@ -1011,6 +1011,37 @@
     return true;
   }
 
+  // The AI chat's title row: the chat's name (in quotes) and its icons left → right (plans list,
+  // + new chat, chat history, ^ collapse). Used only to start a fresh chat.
+  function chatHeaderInfo() {
+    const leftEdge = innerWidth * 0.4;
+    const title = findText('^["“].{2,90}["”]$', { maxLen: 95 })
+      .map((d) => byId(d.id))
+      .filter((el) => el && !el.closest(OUR_UI) && el.getBoundingClientRect().right <= leftEdge)
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+    if (!title) return null;
+    const tr = title.getBoundingClientRect();
+    const mid = tr.top + tr.height / 2;
+    const icons = [...document.querySelectorAll("button,[role=button],[aria-label],[title],svg")]
+      .map((el) => (el.tagName.toLowerCase() === "svg" || el.closest("svg") ? el.closest("button,[role=button]") || el.closest("svg").parentElement : el))
+      .filter((el, i, arr) => el && arr.indexOf(el) === i && isVisible(el) && !el.contains(title) && !title.contains(el))
+      .filter((el) => el.matches("button,[role=button]") || pointer(el))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ el, r }) => r.width <= 44 && r.height <= 44 && r.left >= tr.left && r.right <= leftEdge && Math.abs(r.top + r.height / 2 - mid) < 16 && clean(el.innerText).length <= 2)
+      .sort((a, b) => a.r.left - b.r.left)
+      .map(({ el }) => ({ ...describe(el), text: clean(el.innerText), hint: `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""} ${el.getAttribute("data-tooltip") || ""}`.trim() }));
+    return { title: clean(title.innerText), icons };
+  }
+  function newChatTarget() {
+    const info = chatHeaderInfo();
+    if (!info?.icons.length) return null;
+    const named = info.icons.find((i) => /new (chat|conversation|thread)|start (a )?new/i.test(i.hint) || /^\+$/.test(i.text));
+    if (named) return { ...named, how: "label", title: info.title };
+    // No labels: the + is the second icon (plans, +, history, ^).
+    const pick = info.icons.length >= 3 ? info.icons[1] : null;
+    return pick ? { ...pick, how: "position", title: info.title } : null;
+  }
+
   // Scram project overview (after clicking "More"): the project's name, shown above
   // "Describe your project…". Returns a click target for it.
   function projectNameTarget() {
@@ -1042,7 +1073,7 @@
   }
 
   window.__sabDom = {
-    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
+    findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, chatHeaderInfo, newChatTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
     scrollChatToBottom: () => { const r = scrollChatToBottom(); return { ok: r.ok, moved: !!r.moved }; },
