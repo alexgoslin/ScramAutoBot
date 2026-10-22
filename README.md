@@ -1,4 +1,4 @@
-# Scram Site Analysis & Handoff (Chrome extension)
+# ScramAutoBuild (Chrome extension)
 
 A Manifest V3 Chrome side-panel extension that:
 
