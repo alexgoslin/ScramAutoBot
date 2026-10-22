@@ -5,20 +5,29 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>Scram Keep Alive</h1>
-  <p class="sub">Scram editor tabs keep running when you switch away.</p>
+  <header>
+    <img src="icons/icon48.png" alt="" width="32" height="32">
+    <div>
+      <h1>Scram Keep Alive</h1>
+      <p class="sub">Keeps Scram running in the background.</p>
+    </div>
+  </header>
 
   <h2>Scram tabs</h2>
   <ul id="tabs"></ul>
-  <p id="none" class="muted hidden">No Scram editor tabs open.</p>
+  <p id="none" class="empty hidden">No Scram editor tabs open.</p>
 
-  <label class="toggle">
-    <input type="checkbox" id="audio">
-    <span>Silent audio keep-alive</span>
-  </label>
-  <p class="muted">Stops Chrome freezing the tab. Starts after your first click in the tab. Chrome may show a speaker icon on the tab; you won't hear anything.</p>
+  <section class="card setting">
+    <label class="switch-row" for="audio">
+      <span>
+        <span class="setting-title">Silent audio keep-alive</span>
+        <span class="muted">Stops Chrome freezing the tab. Starts after your first click in it. You won't hear anything, but Chrome may show a speaker icon.</span>
+      </span>
+      <input type="checkbox" id="audio" class="switch">
+    </label>
+  </section>
 
-  <p class="tip">For extra safety, add <code>editor.buildwithscram.com</code> under
+  <p class="tip">💡 For extra safety, add <code>editor.buildwithscram.com</code> under
     <b>chrome://settings/performance → Always keep these sites active</b>.</p>
 
   <script src="popup.js"></script>
