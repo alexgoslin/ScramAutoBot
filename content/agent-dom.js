@@ -595,6 +595,7 @@
     }
     return {
       rect: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 },
+      full: { x: r.left, y: r.top, w: r.width, h: r.height },
       dpr: devicePixelRatio || 1,
       vw: innerWidth,
       vh: innerHeight,
@@ -1046,10 +1047,34 @@
   // An accessibility-tree view of the page with stable refs ("ref_N", never renumbered), like
   // the read_page / find tools Claude in Chrome uses.
   let nextRef = 1;
+  let refPrefix = ""; // "app_" inside the Run preview frame, so its refs never clash with the editor's
   const refOf = (el) => {
-    if (!el.dataset.sabRef) el.dataset.sabRef = `ref_${nextRef++}`;
+    if (!el.dataset.sabRef) el.dataset.sabRef = `${refPrefix}ref_${nextRef++}`;
     return el.dataset.sabRef;
   };
+  const setRefPrefix = (p) => {
+    refPrefix = String(p || "");
+    return true;
+  };
+  // Resolves once the page stops changing (no DOM mutations for quietMs), or after maxMs.
+  function settle(quietMs = 350, maxMs = 2500) {
+    return new Promise((resolve) => {
+      let timer = null;
+      const done = () => {
+        obs.disconnect();
+        clearTimeout(timer);
+        clearTimeout(cap);
+        resolve(true);
+      };
+      const obs = new MutationObserver(() => {
+        clearTimeout(timer);
+        timer = setTimeout(done, quietMs);
+      });
+      obs.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+      timer = setTimeout(done, quietMs);
+      const cap = setTimeout(done, maxMs);
+    });
+  }
   const byRef = (ref) => document.querySelector(`[data-sab-ref="${CSS.escape(String(ref))}"]`);
   const IMPLICIT = { A: "link", BUTTON: "button", SELECT: "combobox", TEXTAREA: "textbox", SUMMARY: "button", IMG: "img", IFRAME: "iframe", DIALOG: "dialog", NAV: "navigation", MAIN: "main", H1: "heading", H2: "heading", H3: "heading", H4: "heading", H5: "heading", H6: "heading", LABEL: "label", TABLE: "table", TR: "row", TH: "columnheader", TD: "cell", UL: "list", OL: "list", LI: "listitem" };
   function roleOfEl(el) {
@@ -1242,7 +1267,7 @@
   }
 
   window.__sabDom = {
-    a11yTree, findRefs, refTarget, elementAt, focusedInfo, formInput, scrollToRef, viewport,
+    a11yTree, findRefs, refTarget, elementAt, focusedInfo, formInput, scrollToRef, viewport, setRefPrefix, settle,
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, chatHeaderInfo, newChatTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
     findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
