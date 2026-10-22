@@ -94,16 +94,16 @@ select {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .item {
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 8px 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; max-width: 100%;
 }
 /* Buttons drop below the title when the panel is narrow instead of pushing it sideways. */
 .item .main { flex: 1 1 120px; min-width: 0; cursor: pointer; }
 .item > button { flex: none; }
 .item .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item .sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .sub { font-size: 11px; color: var(--muted); white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 .item.done { opacity: 0.7; }
 .item.current { border-color: var(--accent); }
 .badge {
@@ -213,3 +213,6 @@ input[type=checkbox]:checked { background: var(--accent); }
 input[type=checkbox]:checked::after { transform: translateX(14px); }
 input[type=radio] { accent-color: var(--accent); }
 a { color: var(--accent); }
+
+/* Nothing in the panel may be wider than the panel: long titles end in "…", long paths wrap. */
+#filesList, #handoffList, .panel, main { min-width: 0; max-width: 100%; overflow-x: hidden; }
