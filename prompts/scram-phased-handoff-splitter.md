@@ -55,7 +55,7 @@ Setup is different in kind from every step after it, so give it its own template
 - The app shell's static structural layout from Section 2 (regions present and correctly sized/positioned), without yet wiring in every screen's content.
 - A basic auth/session scaffold if the app has one, even if the actual login flow is built as its own step next — at minimum, the concept of a "current user" needs to exist in the data layer from the start, since nearly everything else will reference it.
 
-Setup's own testing gate (below) is about proving the *foundation* works, independent of any specific feature: the data layer can genuinely create/read/update/delete a record and have that persist and be re-readable; the theme tokens are actually applied, not hardcoded per-component; routing actually navigates; the shell renders correctly at all three breakpoints from Section 2.
+Setup's own testing gate (below) is about proving the *foundation* works, independent of any specific feature: the data layer can genuinely create/read/update/delete a record and have that persist and be re-readable; the theme tokens are actually applied, not hardcoded per-component; routing actually navigates; the shell renders correctly at desktop size.
 
 ## Step 4 — Write each subsequent step file from the template
 
@@ -113,7 +113,7 @@ Build, as real working code — not placeholders:
 2. Design tokens from the spec's Section 3, implemented as real reusable theme values (not hardcoded per component): {paste condensed color/type/spacing/shape values here}.
 3. A real, working data layer implementing the theorized backend from the spec's Section 9: entities = {list}, relationships = {list}, full create/read/update/delete behavior for each, and {a real-time propagation mechanism / none — per spec}.
 4. Routing scaffold matching the spec's Section 6 nav structure: {paste}.
-5. The app shell's static structural layout from the spec's Section 2: {paste wrapper regions, sizes, stacking}. Render it correctly at 1440px / 768px / 375px. Screen-specific content inside it comes in later steps — for now the regions just need to exist, be correctly sized/positioned, and be empty or minimally placeholder.
+5. The app shell's static structural layout from the spec's Section 2: {paste wrapper regions, sizes, stacking}. Render it correctly at desktop size (the app is built for desktop only). Screen-specific content inside it comes in later steps — for now the regions just need to exist, be correctly sized/positioned, and be empty or minimally placeholder.
 6. A "current user" concept in the data layer, even if the actual login UI is a later step.
 
 ## Explicitly out of scope for this step
@@ -125,7 +125,7 @@ Do not build any individual screen's content, any workflow from Section 10, or t
 - [ ] The data layer can genuinely create a record, read it back, update it, and delete it, for every entity listed above — verified by actually exercising it, not by reading the code and assuming it works.
 - [ ] Data persists across a page refresh (or is explicitly and correctly scoped to session-only, if that's what the spec implies) — verified, not assumed.
 - [ ] Every route defined actually navigates and renders the correct (even if empty) region.
-- [ ] The app shell renders correctly — correct regions, correct relative sizing/stacking — at all three breakpoints.
+- [ ] The app shell renders correctly — correct regions, correct relative sizing/stacking — at desktop size.
 - [ ] Disabled/inert nav items are genuinely non-functional, not fake-clickable.
 
 ## Completion / gate
@@ -148,7 +148,7 @@ Do not request the next step file until every box above is checked against your 
   - Every workflow you implement must be built end-to-end per its full write-up below — not just its first visible step.
   - Every listed component state must be genuinely reachable through real interaction, not just styled.
   - Test each piece as you build it — do not defer testing to the end of this step, let alone to some later step.
-  - Cover the happy path, boundary/edge cases, failure cases, cross-screen consistency, and all three breakpoints for everything in this step.
+  - Cover the happy path, boundary/edge cases, failure cases and cross-screen consistency for everything in this step, at desktop size only.
   - Nothing is "done" on a single successful click.
 - Progress so far: {one line per completed step, e.g. "Step 0: scaffold, theme, data layer, routing, static shell — done."}
 
@@ -166,7 +166,6 @@ Do not request the next step file until every box above is checked against your 
 - [ ] {Workflow name}: failure/error case (per its documented failure modes) shows a real, visible error state.
 - [ ] {Workflow name}: result is reflected correctly everywhere else that data appears, not just in the triggering screen.
 - [ ] {Component name}: every listed state (default/hover/active/focus/disabled/selected/loading/empty/error, as applicable) reached through genuine interaction.
-- [ ] All of the above re-verified at 768px and 375px, not just desktop.
 - [ ] No hardcoded values anywhere in this step's scope — spot-checked directly, not assumed.
 
 ## Completion / gate
@@ -194,7 +193,7 @@ No new features. Go through the entire spec — every row of Section 1 (Screen I
 - [ ] Every component state in Section 4 re-verified reachable.
 - [ ] Every workflow in Section 10 re-run, including its edge and failure cases, with other features now also present.
 - [ ] Cross-feature consistency checked explicitly: pick at least one piece of shared data and confirm it's correct everywhere it appears.
-- [ ] Full app re-checked at all three breakpoints.
+- [ ] Full app re-checked at desktop size.
 - [ ] A final search for hardcoded values across the whole codebase, not just this step's files.
 
 ## Completion / gate

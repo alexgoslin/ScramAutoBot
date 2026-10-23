@@ -486,7 +486,7 @@ When every feature is built, ask the bot to do a full final review. It should:
 6. Check every empty state — what shows when there is no data?
 7. Check every loading state — does the UI show something while data is fetching?
 8. Check every error state — what happens when something goes wrong?
-9. Check mobile and tablet layouts — does the design hold up on smaller screens?
+9. Desktop only: this build targets desktop size, so skip mobile and tablet checks.
 10. Check light mode and dark mode — do colors still contrast correctly in both?
 11. Check for visual glitches — anything repeated unexpectedly, cut off, or
     misaligned?
@@ -510,7 +510,6 @@ The app is complete when all of the following are true:
 - [ ] Auth works: sign up → correct role assigned → log in → protected pages
       work → log out returns to the right place
 - [ ] Users without permission cannot reach pages they shouldn't see
-- [ ] The layout works on mobile and tablet
 - [ ] Light and dark mode both look correct
 - [ ] Server Logs show no unexpected errors
 - [ ] The Database shows data being saved correctly
