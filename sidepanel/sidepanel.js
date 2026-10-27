@@ -161,7 +161,7 @@ $("#bannerOptions").addEventListener("click", openOptions);
 // ---------------------------------------------------------------------------- data
 
 async function loadData() {
-  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings", "categoryDocs"];
+  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings", "categoryDocs", "designBriefs"];
   const got = await chrome.storage.local.get(keys);
   // Keys that were removed (e.g. a wiped Autopilot run) must not linger from the last load.
   data = { ...data, ...Object.fromEntries(keys.map((k) => [k, got[k] ?? null])) };
@@ -318,6 +318,20 @@ document.querySelectorAll(".site-select").forEach((select) =>
   })
 );
 
+// The run's design concept (from the design questions), shown at the top of Files.
+function designItem(siteUrl) {
+  const d = data.designBriefs?.[siteUrl];
+  if (!d) return [];
+  return [
+    el("h3", { class: "section-title" }, "Design"),
+    el("ul", { class: "list" }, [
+      el("li", { class: "item" },
+        el("div", { class: "main", onclick: () => openReader("🎨 Design concept", fmtDate(d.createdAt), d.content) }, el("div", { class: "title" }, "🎨 Design concept"), el("div", { class: "sub" }, d.concept)),
+        el("button", { class: "small", title: "Copy", onclick: () => copyText(d.content) }, "Copy")),
+    ]),
+  ];
+}
+
 function renderFiles() {
   const siteUrl = selectedSite;
   if (siteUrl && isCategoryKey(siteUrl)) {
@@ -329,6 +343,7 @@ function renderFiles() {
     const docItem = (d) =>
       el("li", { class: "item" }, el("div", { class: "main", onclick: () => openReader(d.title, fmtDate(d.savedAt), d.content) }, el("div", { class: "title" }, d.title), el("div", { class: "sub" }, `${Math.round(d.content.length / 100) / 10}k chars`)), el("button", { class: "small", title: "Copy", onclick: () => copyText(d.content) }, "Copy"));
     $("#filesList").replaceChildren(
+      ...designItem(siteUrl),
       ...(docs.length ? [el("h3", { class: "section-title" }, "Research & tribunal"), el("ul", { class: "list" }, docs.map(docItem))] : []),
       ...Object.entries(bySite).flatMap(([name, list]) => [el("h3", { class: "section-title" }, `${name} — ${list.length} screen(s)`), el("ul", { class: "list" }, list.map(specItem))]),
       ...(!docs.length && !specs.length ? [el("div", { class: "empty" }, "Nothing researched for this category yet.")] : [])
@@ -337,6 +352,7 @@ function renderFiles() {
   }
   const specs = data.specFiles.filter((s) => s.siteUrl === siteUrl).sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
   $("#filesList").replaceChildren(
+    ...designItem(siteUrl),
     specs.length
       ? el("ul", { class: "list" }, specs.map(specItem))
       : el("div", { class: "empty" }, siteUrl ? "No spec files for this site." : "No spec files yet. Capture a page from the Capture tab, or run Autopilot.")
@@ -558,7 +574,7 @@ function renderQA(ap) {
       el(
         "fieldset",
         { class: "qa-q", "data-id": q.id },
-        el("legend", {}, q.question),
+        el("legend", {}, q.kind === "design" ? `🎨 ${q.question}` : q.question),
         q.why ? el("div", { class: "muted small-text" }, q.why) : null,
         q.from ? el("div", { class: "qa-from small-text" }, `📍 Noticed while crawling: ${q.from}`) : null,
         ...q.options.map((o, i) =>
