@@ -67,6 +67,15 @@
     }
   }
 
+  // Navigation areas: sidebars, left rails, top bars, tab strips, nav menus. Single-page apps
+  // often navigate with buttons there instead of links, so the crawler clicks them to find screens.
+  const NAV_AREA = 'nav, aside, [role=navigation], [role=tablist], [role=menubar], header, [class*="sidebar" i], [class*="side-bar" i], [class*="sidenav" i], [class*="leftpane" i], [class*="left-pane" i], [class*="navigation" i], [class*="navbar" i], [class*="rail" i]';
+  function inNavArea(el, r) {
+    if (el.closest(NAV_AREA)) return true;
+    // A narrow rail along the left edge, or a bar along the top.
+    return (r.left < 300 && r.width < 300 && r.height < 90) || (r.top < 70 && r.height < 70);
+  }
+
   function describe(el) {
     const r = el.getBoundingClientRect();
     const d = {
@@ -83,6 +92,7 @@
       pressed: el.getAttribute("aria-pressed") ?? (el.getAttribute("aria-checked") ?? undefined),
       inLayer: el.closest(LAYERS) ? true : undefined,
       header: isHeaderControl(el) || undefined,
+      nav: inNavArea(el, r) || undefined,
       submits: (el.tagName === "BUTTON" && el.form && el.type === "submit") || (el.tagName === "INPUT" && el.type === "submit") || undefined,
       editable: el.isContentEditable || ["INPUT", "TEXTAREA"].includes(el.tagName) || undefined,
       box: [Math.round(r.left), Math.round(r.top + scrollY), Math.round(r.width), Math.round(r.height)],
@@ -142,6 +152,17 @@
       for (const el of document.querySelectorAll(INTERACTIVE)) {
         if (!isVisible(el)) continue;
         if (labelOf(el) === target.label && (el.getAttribute("role") || undefined) === target.role) return el;
+      }
+      // Clickable boxes that aren't real controls (pointer cursor), e.g. a single-page app's nav items.
+      if (target.role === "clickable" || !target.role) {
+        let best = null;
+        for (const el of document.body.querySelectorAll("div,span,li,p,h1,h2,h3,h4,label,svg,a,button")) {
+          if (el.closest(OUR_UI) || !isVisible(el) || labelOf(el) !== target.label) continue;
+          if (getComputedStyle(el).cursor !== "pointer") continue;
+          const r = el.getBoundingClientRect();
+          if (!best || r.width * r.height < best.a) best = { el, a: r.width * r.height };
+        }
+        if (best) return best.el;
       }
     }
     return null;
