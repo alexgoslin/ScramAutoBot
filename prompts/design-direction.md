@@ -2,15 +2,14 @@
 
 The default look is safe, generic and forgettable: white background, centred hero, three identical icon cards, a soft gradient and a blue or green button. Never ship that. Every app should look like a design studio made it for this product alone, and a visitor should never guess two of our apps came from the same tool.
 
-## 1. Invent a concept first (think, don't copy)
-1. Read the product. Who uses it, what it feels like to use, what world it belongs to, and what it is the opposite of.
-2. Come up with 3 very different directions. Each needs a short name, an inspiration source and a one-line mood. Pull inspiration from outside software: print, architecture, signage, fashion, packaging, games, film titles, nature, science, a decade, a material or a craft.
-   - Illustrative only, do not reuse: "Swiss railway timetable", "risograph zine", "1970s NASA manual", "botanical field notes", "arcade cabinet", "brutalist concrete", "frosted glass & sky", "museum wall labels".
-3. Pick the boldest direction that still fits the product, and say in two sentences why it suits this app.
-4. Make it different from our other apps. If it resembles a previous project (same palette, same fonts, same layout tricks), choose again.
+## 1. Start from a vibe, then make it your own
+1. Read the product. Who uses it, what it feels like to use, and what it should feel like instead of the generic default.
+2. Start from the VIBE — the overall feeling (e.g. cozy, modern, rough and raw, calm and minimal, playful, premium, bold and energetic, retro, techy and precise, natural and organic, friendly). The human picks one; it's the north star for every choice.
+3. Turn the vibe into a concept that's distinctive but tasteful: a grown-up product people would happily use every day. Inspiration from outside software (print, architecture, materials, a decade, a craft) can season the details — a texture, a type choice, a divider — but never turn the app into a costume or a theme park. No literal themes such as a construction site, a kitchen order ticket, a casino or a spaceship cockpit.
+4. Make it different from our other apps. If it resembles a previous project (same palette, same fonts, same layout tricks), change it.
    - Previously used, so don't repeat: paper & ink editorial with Bricolage Grotesque, and editorial indigo with outlined headlines (plus any concepts listed as already used).
 
-Write the concept as one line ("CONCEPT: …") and make every later decision serve it.
+Write the concept as one line ("CONCEPT: …") and make every later decision serve it and the vibe.
 
 ## 2. Turn the concept into a system (as theme tokens)
 Choose deliberately; don't fall back to defaults.
@@ -31,7 +30,7 @@ All of it goes into the theme, so the logged-in app (dashboards, tables, forms, 
 - **No:** stock photos, emoji as icons, lorem ipsum, default rounded-blue buttons, meaningless gradient blobs, or a centred hero with 3 identical icon cards.
 
 ## 4. Quality bar
-- The concept line exists, and someone could describe the look in 3 words.
+- The concept line exists, it clearly expresses the chosen vibe, and someone could describe the look in 3 words.
 - It's clearly different from the default Scram look and from our other apps.
 - Typography hierarchy is dramatic and consistent, with no more than 3 font families.
 - All colours, fonts, radii and shadows come from theme tokens; nothing is hard-coded one-off.
