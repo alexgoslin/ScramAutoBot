@@ -11,8 +11,34 @@ import * as bridge from "./lib/bridge.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
+// Normal mode: the toolbar icon opens a small popup (the Control Center runs things).
+// Dev mode: the icon opens the full side panel, as before.
+async function applyActionMode() {
+  const { uiDevMode } = await chrome.storage.local.get("uiDevMode");
+  const dev = uiDevMode === true;
+  await chrome.action.setPopup({ popup: dev ? "" : "popup/popup.html" }).catch(console.error);
+  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: dev }).catch(console.error);
+}
+
+// A "!" on the toolbar icon whenever the run is waiting for you (questions, a login, a problem).
+async function updateActionBadge(ap) {
+  const needs =
+    !!ap &&
+    (ap.status === "waiting" || ap.status === "error" || (ap.status === "paused" && !/paused by you/i.test(ap.pauseReason || "")));
+  await chrome.action.setBadgeBackgroundColor({ color: "#D97706" }).catch(() => {});
+  await chrome.action.setBadgeText({ text: needs ? "!" : "" }).catch(() => {});
+  await chrome.action.setTitle({ title: needs ? "ScramAutoBuild — needs you" : "Open ScramAutoBuild" }).catch(() => {});
+}
+applyActionMode();
+store.get("autopilot", null).then(updateActionBadge);
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes.uiDevMode) applyActionMode();
+  if (changes.autopilot) updateActionBadge(changes.autopilot.newValue);
+});
+
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
+  applyActionMode();
   // Tidy step files saved by older versions (shorter context, short quick check at the end).
   store.streamlineSavedSteps().catch(console.error);
   // After an update/reload, carry on with a running Autopilot from where it left off
@@ -20,7 +46,7 @@ chrome.runtime.onInstalled.addListener(() => {
   autopilot.tick();
 });
 chrome.runtime.onStartup.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
+  applyActionMode();
   // Any job marked "running" from a previous browser session is dead.
   store.set("jobs", {});
   autopilot.tick();

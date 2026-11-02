@@ -24,37 +24,10 @@
   <!-- Normal mode: the Control Center (web app) runs everything; this panel just shows what's happening. -->
   <section id="simpleView" class="simple hidden">
     <div class="card">
-      <div class="row between">
-        <div class="label">Control Center</div>
-        <span id="ccBadge" class="badge">not connected</span>
-      </div>
-      <p id="ccLine" class="muted small-text"></p>
-      <div class="row">
-        <button id="ccOpen" class="primary small" type="button">Open Control Center ↗</button>
-        <button id="ccSettings" class="small" type="button">Connection settings</button>
-      </div>
+      <div class="label">Normal mode is on</div>
+      <p class="muted small-text">In normal mode ScramAutoBuild lives in the small popup: click its icon in Chrome's toolbar to see the current run and anything it needs from you. The Control Center runs everything else.</p>
+      <button id="backToDev" class="primary small" type="button">Turn Dev mode back on</button>
     </div>
-
-    <div class="card" id="sRunCard">
-      <div class="row between">
-        <div class="label">Current run</div>
-        <span id="sBadge" class="badge">idle</span>
-      </div>
-      <div id="sEmpty" class="muted small-text">Nothing running. Start a site or category clone from the Control Center — it opens here and runs in this Chrome.</div>
-      <div id="sRun" class="hidden">
-        <div id="sTitle" class="ap-phase"></div>
-        <div id="sNeeds" class="needs hidden"></div>
-        <div id="sMessage" class="ap-message"></div>
-        <div id="sCounters" class="muted small-text"></div>
-        <div class="row">
-          <button id="sPause" class="small" type="button">⏸ Pause</button>
-          <button id="sResume" class="small primary" type="button">Resume</button>
-          <button id="sStop" class="small" type="button">Stop</button>
-        </div>
-        <ol id="sLog" class="ap-log short"></ol>
-      </div>
-    </div>
-    <p class="muted small-text">Turn on <b>Dev mode</b> (top right) for the full extension: capture, files, handoff, manual build, and running without the Control Center.</p>
   </section>
 
   <div id="devView">
