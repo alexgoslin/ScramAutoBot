@@ -14,26 +14,35 @@
   <!-- Needs you: shown only when the run is waiting for you -->
   <section id="needs" class="needs hidden" role="alert">
     <div id="needsTitle" class="needs-title"></div>
-    <p id="needsText"></p>
+    <p id="needsText" class="needs-text"></p>
+    <button id="needsMore" class="more hidden" type="button">Show more</button>
     <div id="needsActions" class="actions"></div>
   </section>
 
-  <section class="card">
+  <section class="card run-card">
     <div class="row between">
       <span class="label">Current run</span>
       <span id="runBadge" class="badge">idle</span>
     </div>
-    <div id="runEmpty" class="muted">Nothing running. Start a site or category clone from the Control Center.</div>
-    <div id="run" class="hidden">
+    <div id="runEmpty" class="empty">
+      <div class="empty-icon" aria-hidden="true">🌱</div>
+      <div>Nothing running yet.<br /><span class="muted">Start a site or category clone from the Control Center.</span></div>
+    </div>
+    <div id="run" class="run hidden">
       <div id="runName" class="run-name"></div>
-      <div id="track" class="track" aria-hidden="true"></div>
-      <div id="stage" class="stage"></div>
-      <div id="runMsg" class="muted msg"></div>
+      <div class="progress">
+        <div class="row between">
+          <span id="stage" class="stage"></span>
+          <span id="stageNo" class="stage-no"></span>
+        </div>
+        <div id="track" class="track" aria-hidden="true"></div>
+      </div>
+      <div id="runMsg" class="msg"></div>
       <div id="runStats" class="stats"></div>
-      <div class="actions">
-        <button id="pause" class="small" type="button">⏸ Pause</button>
-        <button id="resume" class="small primary" type="button">▶ Resume</button>
-        <button id="stop" class="small" type="button">■ Stop</button>
+      <div class="run-actions">
+        <button id="pause" class="small" type="button">Pause</button>
+        <button id="resume" class="small primary" type="button">Resume</button>
+        <button id="stop" class="small quiet-danger" type="button">Stop</button>
       </div>
     </div>
   </section>
@@ -43,14 +52,12 @@
       <span class="label">Control Center</span>
       <span id="ccBadge" class="badge">not connected</span>
     </div>
-    <div class="actions">
-      <button id="openCc" class="primary" type="button">Open Control Center ↗</button>
-      <button id="ccSettings" type="button">Connection settings</button>
-    </div>
+    <button id="openCc" class="primary wide" type="button">Open Control Center ↗</button>
+    <button id="ccSettings" class="link" type="button">Connection settings →</button>
   </section>
 
   <footer>
-    <button id="devMode" class="ghost block" type="button">🛠 Switch to Dev mode (full side panel)</button>
+    <button id="devMode" class="dev" type="button">Switch to Dev mode <span class="muted">· full side panel</span></button>
   </footer>
 
   <div id="toast" class="toast hidden"></div>

@@ -86,6 +86,10 @@ async function showTab(tabId) {
   }
 }
 
+$("#needsMore").addEventListener("click", () => {
+  $("#needsText").classList.toggle("open");
+  render();
+});
 $("#settings").addEventListener("click", () => openSettings("overview"));
 $("#ccSettings").addEventListener("click", () => openSettings("connection"));
 $("#openCc").addEventListener("click", openControlCenter);
@@ -152,7 +156,7 @@ function needsYou(ap) {
       actions: [...(tabId != null ? [button("Show the tab", () => showTab(tabId))] : []), button("I'm logged in — continue", () => send("autopilotResume"), "primary")],
     };
   }
-  if (ap.status === "paused" && !/paused by you/i.test(reason)) return { title: "⏸ Autopilot paused", text: reason || "It needs you before it can carry on.", actions: [button("Resume", () => send("autopilotResume"), "primary")] };
+  if (ap.status === "paused" && !/paused by you/i.test(reason)) return { title: "Autopilot paused", text: reason || "It needs you before it can carry on.", actions: [button("Resume", () => send("autopilotResume"), "primary")] };
   if (ap.status === "error") return { title: "⚠️ Something went wrong", text: reason || "The run stopped with an error.", actions: [button("Try again", () => send("autopilotResume"), "primary")], error: true };
   if (ap.status === "waiting") return { title: "⏳ Waiting for you", text: ap.message || "", actions: [button("Open Control Center ↗", openControlCenter, "primary")] };
   return null;
@@ -164,7 +168,6 @@ function render() {
   const fresh = connected && b.lastPollAt && Date.now() - b.lastPollAt < 60000;
   $("#ccBadge").className = `badge ${connected ? (fresh || b.status === "connecting" ? "on" : "off") : ""}`;
   $("#ccBadge").textContent = connected ? (b.status === "connecting" ? "connecting…" : fresh ? "● connected" : "reconnecting…") : "not connected";
-  $("#ccSettings").classList.toggle("primary", !connected);
   $("#openCc").classList.toggle("primary", connected);
 
   const ap = data.autopilot;
@@ -173,7 +176,14 @@ function render() {
   $("#needs").classList.toggle("err", !!need?.error);
   if (need) {
     $("#needsTitle").textContent = need.title;
-    $("#needsText").textContent = need.text;
+    if ($("#needsText").textContent !== need.text) {
+      $("#needsText").textContent = need.text;
+      $("#needsText").classList.remove("open");
+    }
+    // Long reasons are clamped; "Show more" reveals the rest.
+    const t = $("#needsText");
+    $("#needsMore").classList.toggle("hidden", !t.classList.contains("open") && t.scrollHeight <= t.clientHeight + 2);
+    $("#needsMore").textContent = t.classList.contains("open") ? "Show less" : "Show more";
     // Rebuild the buttons only when the situation changes (re-renders mustn't eat a click).
     if ($("#needsActions").dataset.key !== need.title) {
       $("#needsActions").replaceChildren(...need.actions);
@@ -184,7 +194,7 @@ function render() {
   $("#runEmpty").classList.toggle("hidden", !!ap);
   $("#run").classList.toggle("hidden", !ap);
   $("#runBadge").className = `badge ${ap?.status || ""}`;
-  $("#runBadge").textContent = ap ? { running: "working", waiting: "needs you", paused: "paused", stopped: "stopped", error: "error", done: "done" }[ap.status] || ap.status : "idle";
+  $("#runBadge").textContent = ap ? { running: "● working", waiting: "needs you", paused: "paused", stopped: "stopped", error: "error", done: "✓ done" }[ap.status] || ap.status : "idle";
   if (!ap) return;
 
   const track = ap.mode === "category" ? CATEGORY_TRACK : ap.buildOnly ? BUILD_TRACK : SITE_TRACK;
@@ -198,8 +208,9 @@ function render() {
       return s;
     })
   );
-  $("#stage").textContent = finished ? "✓ Finished" : `Stage ${idx + 1} of ${track.length} · ${track[idx]?.[1] || ap.phase}`;
-  $("#runMsg").textContent = need ? "" : ap.status === "paused" ? ap.pauseReason || "" : ap.message || "";
+  $("#stage").textContent = finished ? "✓ Finished" : track[idx]?.[1] || ap.phase;
+  $("#stageNo").textContent = finished ? `${track.length} of ${track.length}` : `Stage ${idx + 1} of ${track.length}`;
+  $("#runMsg").textContent = need || finished ? "" : ap.status === "paused" ? ap.pauseReason || "" : ap.message || "";
 
   const ex = ap.explore || {};
   const bd = ap.build || {};
@@ -208,16 +219,22 @@ function render() {
   if (ap.mode === "category" && (cm.length || ap.category?.sites?.length)) stats.push([`${cm.filter((m) => m.status === "done").length}/${cm.length || ap.category.sites.length}`, "sites"]);
   if (ap.mode !== "category" && !ap.buildOnly) stats.push([String((ex.pages || []).length), "screens"]);
   if (bd.totalSteps) stats.push([`${Math.min((bd.step || 0) + 1, bd.totalSteps)}/${bd.totalSteps}`, "steps"]);
-  const mins = Math.max(0, Math.round(((finished || ap.status === "stopped" ? ap.updatedAt : Date.now()) - ap.startedAt) / 60000));
-  stats.push([mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} min`, ""]);
+  // Time: while working, how long it's been going; once it stops for a while, when it started.
+  const end = ["running", "waiting"].includes(ap.status) ? Date.now() : ap.updatedAt || Date.now();
+  const mins = Math.max(0, Math.round((end - ap.startedAt) / 60000));
+  if (mins < 24 * 60) stats.push([mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`, "running time"]);
+  else stats.push([new Date(ap.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }), "started"]);
   stats.push([formatCost(Math.max(0, totalCost(data.usage) - totalCost(ap.usageAtStart || data.usage))), "spent"]);
   $("#runStats").replaceChildren(
-    ...stats.map(([v, l]) => {
-      const s = document.createElement("span");
+    ...stats.slice(-3).map(([v, l]) => {
+      const t = document.createElement("div");
+      t.className = "stat";
       const bEl = document.createElement("b");
       bEl.textContent = v;
-      s.append(bEl, l ? ` ${l}` : "");
-      return s;
+      const lEl = document.createElement("span");
+      lEl.textContent = l;
+      t.append(bEl, lEl);
+      return t;
     })
   );
   const active = ["running", "paused", "waiting"].includes(ap.status);
