@@ -8,8 +8,10 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; }
-body { width: 360px; padding: 14px; background: var(--bg); color: var(--text); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; gap: 12px; }
+/* The popup window is a rectangle; the rounded look comes from this container on a transparent page. */
+html, body { margin: 0; padding: 0; background: transparent; }
+body { width: 360px; color: var(--text); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.shell { padding: 14px; background: var(--bg); border-radius: 16px; overflow: hidden; display: grid; gap: 12px; border: 1px solid var(--border); }
 p, div, span { overflow-wrap: anywhere; }
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
