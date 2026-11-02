@@ -179,31 +179,99 @@
     <section id="controlCenter" class="page" data-page="connection">
       <h2>Control Center connection</h2>
       <p class="hint">
-        Optional: connect to the ScramAutoBuild Control Center web app to start, steer and watch runs from there.
-        The extension still does all the work in this Chrome, and the side panel works the same with or without a connection.
-        Your API key is never sent to it — only run state, the log, documents and usage totals.
+        The Control Center is the ScramAutoBuild website: you start runs, answer questions and read everything there,
+        while this extension does the work in this Chrome. Your Anthropic API key never leaves this browser —
+        only the run's progress, its log, the documents it writes and usage totals are sent.
       </p>
-      <label for="ccPaste">Paste connection JSON (Control Center → Extension → Connect extension → Copy both)</label>
-      <textarea id="ccPaste" rows="2" spellcheck="false" placeholder='{"computer_id": 3, "token": "…"}'></textarea>
-      <label for="ccBaseUrl">Base URL</label>
-      <input id="ccBaseUrl" type="text" spellcheck="false" />
-      <div class="grid">
-        <div>
-          <label for="ccComputerId">Connection ID</label>
-          <input id="ccComputerId" type="number" min="1" step="1" />
+
+      <div id="ccState" class="cc-state">
+        <span id="ccDot" class="cc-dot" aria-hidden="true"></span>
+        <div class="cc-state-text">
+          <strong id="ccStateTitle">Not connected</strong>
+          <span id="ccStatus" class="hint"></span>
         </div>
-        <div>
-          <label for="ccToken">Pairing token</label>
-          <input id="ccToken" type="password" autocomplete="off" spellcheck="false" />
+        <div class="row cc-state-actions">
+          <button id="ccOpenApp" type="button" class="small">Open Control Center ↗</button>
+          <button id="ccDisconnect" type="button" class="small hidden">Disconnect</button>
         </div>
       </div>
-      <label for="ccAppUrl">Control Center web address (what “Open Control Center” in the side panel opens — paste the app's Run or Live address; blank = the Scram editor)</label>
-      <input id="ccAppUrl" type="text" spellcheck="false" placeholder="https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/" />
-      <div class="row">
-        <button id="ccConnect" type="button" class="primary">Connect</button>
-        <button id="ccDisconnect" type="button">Disconnect</button>
-        <span id="ccStatus" class="hint"></span>
-      </div>
+
+      <details id="ccHow" class="cc-how" open>
+        <summary>How to connect <span class="hint">— takes about a minute</span></summary>
+        <ol class="steps">
+          <li>
+            <span class="num">1</span>
+            <div>
+              <strong>Open the Control Center and sign in</strong>
+              <p class="hint">Use the button below (or your saved bookmark). If it opens the Scram editor, press <b>Run</b> at the top to open the app.</p>
+              <button id="ccOpenApp2" type="button" class="small">Open Control Center ↗</button>
+            </div>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <div>
+              <strong>Go to the Extension page</strong>
+              <p class="hint">Click <b>Extension</b> in the app's left menu, then press <b>Connect extension</b>. If this Chrome was connected before, press <b>Reconnect (new token)</b> instead.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <div>
+              <strong>Press “Copy both”</strong>
+              <p class="hint">The app shows a <b>Connection ID</b> and a <b>pairing token</b> — only once. <b>Copy both</b> copies them together, like <code>{"computer_id": 3, "token": "…"}</code>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <div>
+              <strong>Paste it here</strong>
+              <textarea id="ccPaste" rows="2" spellcheck="false" placeholder='Paste here — {"computer_id": 3, "token": "…"}'></textarea>
+              <div class="row">
+                <button id="ccConnect" type="button" class="primary">Connect</button>
+                <span class="hint">It connects by itself as soon as you paste.</span>
+              </div>
+            </div>
+          </li>
+          <li>
+            <span class="num ok">✓</span>
+            <div>
+              <strong>Check it worked</strong>
+              <p class="hint">This page turns green, and within a few seconds the Control Center's Extension page shows <b>Connected ●</b> with this extension's version. Start runs from <b>New run</b> in the Control Center; click the ScramAutoBuild icon in Chrome's toolbar any time to see what it's doing.</p>
+            </div>
+          </li>
+        </ol>
+      </details>
+
+      <details class="cc-more">
+        <summary>Troubleshooting</summary>
+        <ul class="trouble">
+          <li><b>“That Connection ID and token don't match”</b> — the token was mistyped, already replaced, or the connection was revoked. In the Control Center press <b>Reconnect (new token)</b>, then Copy both and paste again.</li>
+          <li><b>“Couldn't reach the Control Center”</b> — check you're online. If the app was published to a new address, update the <b>Base URL</b> under Advanced below.</li>
+          <li><b>The Control Center says “Offline”</b> — Chrome must be open with this extension on. It checks in every few seconds while a run is going and about every 30 seconds otherwise; opening this page or the toolbar popup checks in straight away.</li>
+          <li><b>Lost the token?</b> It's only shown once, on purpose. Make a new one with <b>Reconnect (new token)</b> — the old one stops working.</li>
+          <li><b>Disconnect</b> forgets the token here; your runs and files stay. Revoke the connection in the Control Center too if you're done with this Chrome.</li>
+        </ul>
+      </details>
+
+      <details class="cc-more" id="ccAdvanced">
+        <summary>Advanced — enter the details by hand, or change the addresses</summary>
+        <div class="cc-adv">
+          <div class="grid">
+            <div>
+              <label for="ccComputerId">Connection ID</label>
+              <input id="ccComputerId" type="number" min="1" step="1" />
+            </div>
+            <div>
+              <label for="ccToken">Pairing token</label>
+              <input id="ccToken" type="password" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+          <label for="ccBaseUrl">Base URL (the Control Center's bridge address — only change it after the app is published)</label>
+          <input id="ccBaseUrl" type="text" spellcheck="false" />
+          <label for="ccAppUrl">Control Center web address (what “Open Control Center” opens — paste the app's Run or Live address; blank = the Scram editor)</label>
+          <input id="ccAppUrl" type="text" spellcheck="false" placeholder="https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/" />
+        </div>
+      </details>
     </section>
 
     <section class="page" data-page="prompts">

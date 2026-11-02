@@ -185,13 +185,29 @@ renderLessons();
 
 // ---- Control Center connection (lib/bridge.js; runs in the background worker)
 const DEFAULT_CC_URL = "https://z07w3d61njwbx5lbgc5gzqk2.dev.scramapps.com/api/dataSource/oAC_003FG/";
+let ccWasConnected = null;
 function ccRender(s) {
   if (!s) return;
   $("#ccBaseUrl").value ||= s.baseUrl || DEFAULT_CC_URL;
   if (s.computerId && !$("#ccComputerId").value) $("#ccComputerId").value = s.computerId;
   $("#ccToken").placeholder = s.tokenHint ? `saved (${s.tokenHint})` : "";
-  $("#ccStatus").textContent = `${s.connected ? "● " : ""}${s.statusMessage || s.status}${s.outbox ? ` · ${s.outbox} report(s) waiting to retry` : ""}`;
-  $("#ccStatus").style.color = s.connected ? "var(--accent, #1f8a4c)" : s.status === "error" ? "#b42318" : "";
+  const err = !s.connected && s.status === "error";
+  $("#ccState").className = `cc-state ${s.connected ? "on" : err ? "err" : ""}`;
+  $("#ccStateTitle").textContent = s.connected ? "Connected to the Control Center" : err ? "Not connected — something went wrong" : s.status === "connecting" ? "Connecting…" : "Not connected yet";
+  $("#ccStatus").textContent = s.connected
+    ? `Connection #${s.computerId}${s.lastPollAt ? ` · last check ${new Date(s.lastPollAt).toLocaleTimeString()}` : ""}${s.outbox ? ` · ${s.outbox} report(s) waiting to retry` : ""}`
+    : err
+      ? s.statusMessage
+      : "Follow the steps below to connect.";
+  $("#ccDisconnect").classList.toggle("hidden", !s.connected);
+  // The how-to stays open until connected, then folds away (still there to connect again).
+  if (ccWasConnected !== s.connected) $("#ccHow").open = !s.connected;
+  ccWasConnected = s.connected;
+}
+function ccMessage(text, isError = false) {
+  $("#ccState").className = `cc-state ${isError ? "err" : ""}`;
+  $("#ccStateTitle").textContent = isError ? "Not connected — something went wrong" : "Connecting…";
+  $("#ccStatus").textContent = text;
 }
 async function ccRefresh(kick = false) {
   const res = await chrome.runtime.sendMessage({ type: "bridgeStatus", kick }).catch(() => null);
@@ -205,28 +221,33 @@ $("#ccPaste").addEventListener("input", () => {
     if (j.computer_id != null) $("#ccComputerId").value = j.computer_id;
     if (j.token) $("#ccToken").value = j.token;
     if (j.base_url || j.baseUrl) $("#ccBaseUrl").value = j.base_url || j.baseUrl;
-    $("#ccStatus").textContent = "Filled in — press Connect.";
+    if (j.computer_id != null && j.token) ccConnect(); // pasted the whole thing: connect straight away
   } catch {
-    $("#ccStatus").textContent = "That isn't the connection JSON — it looks like {\"computer_id\": 3, \"token\": \"…\"}.";
+    ccMessage("That isn't what “Copy both” gives — it looks like {\"computer_id\": 3, \"token\": \"…\"}. Press Copy both in the Control Center and paste again.", true);
   }
 });
-$("#ccConnect").addEventListener("click", async () => {
-  $("#ccStatus").textContent = "Connecting…";
-  $("#ccStatus").style.color = "";
-  const res = await chrome.runtime.sendMessage({ type: "bridgeConnect", baseUrl: $("#ccBaseUrl").value.trim(), computerId: $("#ccComputerId").value.trim(), token: $("#ccToken").value.trim() });
-  if (!res?.ok) {
-    $("#ccStatus").textContent = res?.error || "Couldn't connect.";
-    $("#ccStatus").style.color = "#b42318";
-    return;
+let ccBusy = false;
+async function ccConnect() {
+  if (ccBusy) return;
+  ccBusy = true;
+  ccMessage("Connecting…");
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "bridgeConnect", baseUrl: $("#ccBaseUrl").value.trim(), computerId: $("#ccComputerId").value.trim(), token: $("#ccToken").value.trim() });
+    if (!res?.ok) return ccMessage(res?.error || "Couldn't connect.", true);
+    $("#ccToken").value = "";
+    $("#ccPaste").value = "";
+    ccRefresh(true);
+  } finally {
+    ccBusy = false;
   }
-  $("#ccToken").value = "";
-  $("#ccPaste").value = "";
-  ccRefresh(true);
-});
+}
+$("#ccConnect").addEventListener("click", ccConnect);
+const CC_APP_DEFAULT = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
+for (const id of ["#ccOpenApp", "#ccOpenApp2"]) $(id).addEventListener("click", async () => chrome.tabs.create({ url: (await chrome.storage.local.get("ccAppUrl")).ccAppUrl || CC_APP_DEFAULT }));
 chrome.storage.local.get("ccAppUrl").then(({ ccAppUrl }) => ($("#ccAppUrl").value = ccAppUrl || ""));
 $("#ccAppUrl").addEventListener("change", () => {
   const v = $("#ccAppUrl").value.trim();
-  if (v && !/^https:\/\//i.test(v)) return ($("#ccStatus").textContent = "The web address must start with https://");
+  if (v && !/^https:\/\//i.test(v)) return ccMessage("The Control Center web address must start with https://", true);
   chrome.storage.local.set({ ccAppUrl: v });
 });
 $("#ccDisconnect").addEventListener("click", async () => {

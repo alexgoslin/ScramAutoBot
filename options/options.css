@@ -80,3 +80,27 @@ button.small { padding: 4px 10px; font-size: 12px; justify-self: start; }
   main { padding: 20px 16px 60px; }
   .dash, .grid { grid-template-columns: 1fr; }
 }
+
+/* ---- Control Center connection page */
+.cc-state { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); background: #fafafa; }
+.cc-state.on { background: var(--accent-soft); border-color: var(--accent-line); }
+.cc-state.err { background: #fdf0ee; border-color: #f4cfc9; }
+.cc-dot { width: 12px; height: 12px; border-radius: 50%; background: #c4c4c8; flex: none; }
+.cc-state.on .cc-dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(7,95,0,.12); }
+.cc-state.err .cc-dot { background: var(--err); }
+.cc-state-text { display: grid; flex: 1 1 220px; min-width: 0; }
+.cc-state.on #ccStateTitle { color: var(--accent); }
+.cc-state.err #ccStateTitle { color: var(--err); }
+.cc-how, .cc-more { border: 1px solid var(--border); border-radius: 12px; padding: 0 16px; background: #fff; }
+.cc-how summary, .cc-more summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.cc-how[open] summary, .cc-more[open] summary { border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.steps { list-style: none; margin: 0; padding: 8px 0 14px; display: grid; gap: 16px; }
+.steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; }
+.steps li > div { display: grid; gap: 6px; }
+.steps p { margin: 0; }
+.num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.num.ok { background: var(--accent); color: #fff; box-shadow: none; }
+.steps code { background: #f4f4f5; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+.trouble { margin: 8px 0 14px; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; }
+.cc-adv { display: grid; gap: 8px; padding: 8px 0 16px; }
+.hidden { display: none !important; }
