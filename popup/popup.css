@@ -8,10 +8,11 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-/* The popup window is a rectangle; the rounded look comes from this container on a transparent page. */
-html, body { margin: 0; padding: 0; background: transparent; }
+/* Chrome's popup window is an opaque rectangle (it paints white behind a transparent page), so
+   the page is the same colour as the popup: no white corners. Chrome rounds the window itself. */
+html, body { margin: 0; padding: 0; background: var(--bg) !important; }
 body { width: 360px; color: var(--text); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-.shell { padding: 14px; background: var(--bg); border-radius: 16px; overflow: hidden; display: grid; gap: 12px; border: 1px solid var(--border); }
+.shell { padding: 14px; background: var(--bg); display: grid; gap: 12px; }
 p, div, span { overflow-wrap: anywhere; }
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
