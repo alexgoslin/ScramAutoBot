@@ -12,6 +12,17 @@
     <button id="settings" class="icon" type="button" title="Settings">⚙</button>
   </header>
 
+  <section class="card cc-card">
+    <div class="row between">
+      <span class="label">Control Center</span>
+      <span id="ccBadge" class="badge">not connected</span>
+    </div>
+    <div class="cc-actions">
+      <button id="openCc" class="primary" type="button">Open Control Center ↗</button>
+      <button id="ccSettings" class="link" type="button">Connection settings</button>
+    </div>
+  </section>
+
   <!-- Needs you: shown only when the run is waiting for you -->
   <section id="needs" class="needs hidden" role="alert">
     <div id="needsTitle" class="needs-title"></div>
@@ -48,14 +59,6 @@
     </div>
   </section>
 
-  <section class="card">
-    <div class="row between">
-      <span class="label">Control Center</span>
-      <span id="ccBadge" class="badge">not connected</span>
-    </div>
-    <button id="openCc" class="primary wide" type="button">Open Control Center ↗</button>
-    <button id="ccSettings" class="link" type="button">Connection settings →</button>
-  </section>
 
   <footer>
     <button id="devMode" class="dev" type="button">Switch to Dev mode <span class="muted">· full side panel</span></button>
