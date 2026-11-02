@@ -9,13 +9,55 @@
 <body>
   <header class="topbar">
     <div class="brand"><img src="../icons/icon48.png" alt="" />ScramAutoBuild</div>
-    <button id="openOptions" class="ghost small" title="Settings">⚙ Settings</button>
+    <div class="topbar-actions">
+      <label class="devtoggle" title="Dev mode shows the full extension: capture, files, handoff, manual build, and running without the Control Center">
+        <input id="devMode" type="checkbox" role="switch" /><span class="switch" aria-hidden="true"></span>Dev mode
+      </label>
+      <button id="openOptions" class="ghost small" title="Settings">⚙</button>
+    </div>
   </header>
 
   <div id="apiKeyBanner" class="banner warn hidden">
     No Anthropic API key set. <a href="#" id="bannerOptions">Add one in Settings</a>.
   </div>
 
+  <!-- Normal mode: the Control Center (web app) runs everything; this panel just shows what's happening. -->
+  <section id="simpleView" class="simple hidden">
+    <div class="card">
+      <div class="row between">
+        <div class="label">Control Center</div>
+        <span id="ccBadge" class="badge">not connected</span>
+      </div>
+      <p id="ccLine" class="muted small-text"></p>
+      <div class="row">
+        <button id="ccOpen" class="primary small" type="button">Open Control Center ↗</button>
+        <button id="ccSettings" class="small" type="button">Connection settings</button>
+      </div>
+    </div>
+
+    <div class="card" id="sRunCard">
+      <div class="row between">
+        <div class="label">Current run</div>
+        <span id="sBadge" class="badge">idle</span>
+      </div>
+      <div id="sEmpty" class="muted small-text">Nothing running. Start a site or category clone from the Control Center — it opens here and runs in this Chrome.</div>
+      <div id="sRun" class="hidden">
+        <div id="sTitle" class="ap-phase"></div>
+        <div id="sNeeds" class="needs hidden"></div>
+        <div id="sMessage" class="ap-message"></div>
+        <div id="sCounters" class="muted small-text"></div>
+        <div class="row">
+          <button id="sPause" class="small" type="button">⏸ Pause</button>
+          <button id="sResume" class="small primary" type="button">Resume</button>
+          <button id="sStop" class="small" type="button">Stop</button>
+        </div>
+        <ol id="sLog" class="ap-log short"></ol>
+      </div>
+    </div>
+    <p class="muted small-text">Turn on <b>Dev mode</b> (top right) for the full extension: capture, files, handoff, manual build, and running without the Control Center.</p>
+  </section>
+
+  <div id="devView">
   <!-- Two areas: single-site cloning (as before) and category cloning (several sites → tribunal → one app) -->
   <nav class="modes" aria-label="What to clone">
     <button type="button" data-mode="site" class="active">🌐 Site clone</button>
@@ -187,6 +229,7 @@
       <ul id="buildList" class="list"></ul>
     </section>
   </main>
+  </div>
 
   <!-- Reader modal -->
   <div id="reader" class="reader hidden" role="dialog" aria-modal="true">

@@ -224,6 +224,12 @@ $("#ccConnect").addEventListener("click", async () => {
   $("#ccPaste").value = "";
   ccRefresh(true);
 });
+chrome.storage.local.get("ccAppUrl").then(({ ccAppUrl }) => ($("#ccAppUrl").value = ccAppUrl || ""));
+$("#ccAppUrl").addEventListener("change", () => {
+  const v = $("#ccAppUrl").value.trim();
+  if (v && !/^https:\/\//i.test(v)) return ($("#ccStatus").textContent = "The web address must start with https://");
+  chrome.storage.local.set({ ccAppUrl: v });
+});
 $("#ccDisconnect").addEventListener("click", async () => {
   await chrome.runtime.sendMessage({ type: "bridgeDisconnect" });
   ccRefresh(true);

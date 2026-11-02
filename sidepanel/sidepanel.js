@@ -161,7 +161,7 @@ $("#bannerOptions").addEventListener("click", openOptions);
 // ---------------------------------------------------------------------------- data
 
 async function loadData() {
-  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings", "categoryDocs", "designBriefs"];
+  const keys = ["sites", "specFiles", "handoffFiles", "buildProgress", "jobs", "apiKey", "activeBuild", "autopilot", "usage", "briefings", "categoryDocs", "designBriefs", "bridge", "uiDevMode", "ccAppUrl"];
   const got = await chrome.storage.local.get(keys);
   // Keys that were removed (e.g. a wiped Autopilot run) must not linger from the last load.
   data = { ...data, ...Object.fromEntries(keys.map((k) => [k, got[k] ?? null])) };
@@ -209,6 +209,13 @@ function manageKeepAlive() {
 
 function render() {
   $("#apiKeyBanner").classList.toggle("hidden", !!data.apiKey);
+  // Normal mode (default): the Control Center runs everything and this panel shows the run.
+  // Dev mode: the full extension, exactly as before.
+  const dev = data.uiDevMode === true;
+  $("#devMode").checked = dev;
+  $("#devView").classList.toggle("hidden", !dev);
+  $("#simpleView").classList.toggle("hidden", dev);
+  if (!dev) renderSimple();
   renderAutopilot();
   applyMode(); // after renderAutopilot: it decides which single-site controls show
   renderCategory();
@@ -892,3 +899,80 @@ $("#catAccept").addEventListener("click", () => send("categoryDecide", { index: 
 $("#catSkip").addEventListener("click", () => send("categoryDecide", { index: data.autopilot?.category?.confirmIndex, accept: false }).catch((e) => toast(e.message)));
 $("#catLoggedIn").addEventListener("click", () => send("categoryLoggedIn").catch((e) => toast(e.message)));
 $("#catSkipSite").addEventListener("click", () => send("categorySkipSite").catch((e) => toast(e.message)));
+
+
+// ---------------------------------------------------------------------------- normal mode
+
+const CC_APP_URL = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
+$("#devMode").addEventListener("change", (e) => chrome.storage.local.set({ uiDevMode: e.target.checked }));
+$("#ccSettings").addEventListener("click", openOptions);
+$("#ccOpen").addEventListener("click", () => chrome.tabs.create({ url: data.ccAppUrl || CC_APP_URL }));
+for (const [id, type] of [["#sPause", "autopilotPause"], ["#sResume", "autopilotResume"], ["#sStop", "autopilotStop"]]) {
+  $(id).addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    try {
+      await send(type);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      e.target.disabled = false;
+    }
+  });
+}
+
+function needsYou(ap) {
+  if (ap.status === "waiting" && ap.phase === "qa") return `❓ ${ap.qa?.questions?.length || ""} question(s) for you — answer them in the Control Center.`;
+  if (ap.status === "waiting" && ap.phase === "cat-confirm") return "🗂 Confirm the suggested sites in the Control Center.";
+  if (ap.status === "waiting" && ap.phase === "cat-explore") {
+    const m = ap.category?.members?.[ap.category.memberIndex];
+    return `🔑 Log in to ${m?.product || "the site"} in the tab I opened, then press “I'm logged in — continue” in the Control Center.`;
+  }
+  if (ap.status === "paused" && /log ?in|logged in|sign in/i.test(ap.pauseReason || "")) return `🔑 ${ap.pauseReason}`;
+  if (ap.status === "paused" && !/paused by you/i.test(ap.pauseReason || "")) return `⚠️ ${ap.pauseReason || "Paused"} — press Resume when ready.`;
+  if (ap.status === "error") return `⚠️ ${ap.pauseReason || ap.message || "Something went wrong"} — press Resume to retry.`;
+  if (ap.status === "waiting") return `⏳ ${ap.message || "Waiting for you"} — see the Control Center.`;
+  return "";
+}
+
+function renderSimple() {
+  const b = data.bridge || {};
+  const connected = !!(b.enabled && b.token && b.computerId);
+  const fresh = connected && b.lastPollAt && Date.now() - b.lastPollAt < 60000;
+  $("#ccBadge").className = `badge ${connected ? (fresh ? "connected" : "offline") : ""}`;
+  $("#ccBadge").textContent = connected ? (fresh ? "● connected" : "reconnecting…") : "not connected";
+  $("#ccLine").textContent = connected
+    ? `Runs are started and steered from the Control Center; this Chrome does the work.${b.lastPollAt ? ` Last check ${new Date(b.lastPollAt).toLocaleTimeString()}.` : ""}`
+    : b.status === "error" && b.statusMessage
+      ? b.statusMessage
+      : "Connect the extension to the Control Center to run everything from the website (Settings → Control Center). Or turn on Dev mode to use the extension on its own.";
+  $("#ccSettings").classList.toggle("primary", !connected);
+  $("#ccOpen").classList.toggle("primary", connected);
+
+  const ap = data.autopilot;
+  $("#sEmpty").classList.toggle("hidden", !!ap);
+  $("#sRun").classList.toggle("hidden", !ap);
+  $("#sBadge").className = `badge ${ap?.status || ""}`;
+  $("#sBadge").textContent = ap?.status || "idle";
+  if (!ap) return;
+  const active = ["running", "paused", "waiting"].includes(ap.status);
+  const name = ap.mode === "category" ? `🗂 ${ap.category?.name || host(ap.siteUrl)}` : `🌐 ${host(ap.siteUrl)}`;
+  $("#sTitle").textContent = `${name} — ${PHASES[ap.phase] || ap.phase}`;
+  const need = needsYou(ap);
+  $("#sNeeds").textContent = need;
+  $("#sNeeds").classList.toggle("hidden", !need);
+  $("#sMessage").textContent = need ? "" : ap.message || "";
+  const ex = ap.explore || {};
+  const bd = ap.build || {};
+  const cm = ap.category?.members || [];
+  const parts = ap.mode === "category" ? [`${cm.filter((m) => m.status === "done").length}/${cm.length || ap.category?.sites?.length || 0} sites`] : [`${(ex.pages || []).length} screens`];
+  if (bd.totalSteps) parts.push(`step ${Math.min((bd.step || 0) + 1, bd.totalSteps)} of ${bd.totalSteps}`);
+  parts.push(`${Math.round((Date.now() - ap.startedAt) / 60000)} min`);
+  parts.push(`${formatCost(Math.max(0, totalCost(data.usage) - totalCost(ap.usageAtStart || data.usage)))} this run`);
+  $("#sCounters").textContent = parts.join(" · ");
+  $("#sPause").classList.toggle("hidden", ap.status !== "running");
+  $("#sResume").classList.toggle("hidden", !["paused", "stopped", "error"].includes(ap.status));
+  $("#sStop").classList.toggle("hidden", !active);
+  const log = $("#sLog");
+  log.replaceChildren(...(ap.log || []).slice(-12).map((l) => el("li", {}, `${new Date(l.t).toLocaleTimeString()} ${l.msg}`)));
+  log.scrollTop = log.scrollHeight;
+}
