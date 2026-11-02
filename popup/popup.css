@@ -10,9 +10,14 @@
 * { box-sizing: border-box; }
 /* Chrome's popup window is an opaque rectangle (it paints white behind a transparent page), so
    the page is the same colour as the popup: no white corners. Chrome rounds the window itself. */
-html, body { margin: 0; padding: 0; background: var(--bg) !important; }
+html, body { margin: 0; padding: 0; background: var(--bg) !important; overflow: hidden; }
 body { width: 360px; color: var(--text); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-.shell { padding: 14px; background: var(--bg); display: grid; gap: 12px; }
+/* Chrome caps popups at 600px tall and would add its own grey scrollbar track down the side;
+   the content scrolls inside instead, with a slim scrollbar. */
+.shell { padding: 14px; background: var(--bg); display: grid; gap: 12px; max-height: 600px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #cfd3cb transparent; }
+.shell::-webkit-scrollbar { width: 6px; }
+.shell::-webkit-scrollbar-track { background: transparent; }
+.shell::-webkit-scrollbar-thumb { background: #cfd3cb; border-radius: 10px; }
 p, div, span { overflow-wrap: anywhere; }
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
