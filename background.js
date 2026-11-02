@@ -7,6 +7,7 @@ import * as chatTest from "./lib/scram-chat-test.js";
 import * as skillsTest from "./lib/skills-test.js";
 import * as scramExplorer from "./lib/scram-explorer.js";
 import * as categoryLib from "./lib/category.js";
+import * as bridge from "./lib/bridge.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
@@ -258,7 +259,17 @@ const handlers = {
   autopilotAnswer: ({ answers }) => autopilot.answerQuestions(answers),
   autopilotNote: ({ text }) => autopilot.addNote(text),
 
+  // Control Center connection (Settings → Control Center). Opt-in; nothing runs until connected.
+  bridgeConnect: ({ baseUrl, computerId, token }) => bridge.connect({ baseUrl, computerId, token }),
+  bridgeDisconnect: () => bridge.disconnect("Disconnected"),
+  bridgeStatus: ({ kick }) => {
+    if (kick) bridge.kick(); // an extension page opened: poll now (spec 9)
+    return bridge.status();
+  },
 };
+
+// The Control Center runs its commands through these same handlers, exactly like the side panel.
+bridge.init(handlers);
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const handler = handlers[msg?.type];

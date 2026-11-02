@@ -139,6 +139,34 @@
       </div>
     </section>
 
+    <section id="controlCenter">
+      <h2>Control Center</h2>
+      <p class="hint">
+        Optional: connect to the ScramAutoBuild Control Center web app to start, steer and watch runs from there.
+        The extension still does all the work in this Chrome, and the side panel works the same with or without a connection.
+        Your API key is never sent to it — only run state, the log, documents and usage totals.
+      </p>
+      <label for="ccPaste">Paste connection JSON (Control Center → Extension → Connect extension → Copy both)</label>
+      <textarea id="ccPaste" rows="2" spellcheck="false" placeholder='{"computer_id": 3, "token": "…"}'></textarea>
+      <label for="ccBaseUrl">Base URL</label>
+      <input id="ccBaseUrl" type="text" spellcheck="false" />
+      <div class="grid">
+        <div>
+          <label for="ccComputerId">Connection ID</label>
+          <input id="ccComputerId" type="number" min="1" step="1" />
+        </div>
+        <div>
+          <label for="ccToken">Pairing token</label>
+          <input id="ccToken" type="password" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="row">
+        <button id="ccConnect" type="button" class="primary">Connect</button>
+        <button id="ccDisconnect" type="button">Disconnect</button>
+        <span id="ccStatus" class="hint"></span>
+      </div>
+    </section>
+
     <section>
       <h2>Prompts</h2>
       <p class="hint">

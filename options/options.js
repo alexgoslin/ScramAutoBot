@@ -183,3 +183,52 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.scramLessons) renderLessons();
 });
 renderLessons();
+
+// ---- Control Center connection (lib/bridge.js; runs in the background worker)
+const DEFAULT_CC_URL = "https://z07w3d61njwbx5lbgc5gzqk2.dev.scramapps.com/api/dataSource/oAC_003FG/";
+function ccRender(s) {
+  if (!s) return;
+  $("#ccBaseUrl").value ||= s.baseUrl || DEFAULT_CC_URL;
+  if (s.computerId && !$("#ccComputerId").value) $("#ccComputerId").value = s.computerId;
+  $("#ccToken").placeholder = s.tokenHint ? `saved (${s.tokenHint})` : "";
+  $("#ccStatus").textContent = `${s.connected ? "● " : ""}${s.statusMessage || s.status}${s.outbox ? ` · ${s.outbox} report(s) waiting to retry` : ""}`;
+  $("#ccStatus").style.color = s.connected ? "var(--accent, #1f8a4c)" : s.status === "error" ? "#b42318" : "";
+}
+async function ccRefresh(kick = false) {
+  const res = await chrome.runtime.sendMessage({ type: "bridgeStatus", kick }).catch(() => null);
+  if (res?.ok) ccRender(res.data);
+}
+$("#ccPaste").addEventListener("input", () => {
+  const raw = $("#ccPaste").value.trim();
+  if (!raw) return;
+  try {
+    const j = JSON.parse(raw);
+    if (j.computer_id != null) $("#ccComputerId").value = j.computer_id;
+    if (j.token) $("#ccToken").value = j.token;
+    if (j.base_url || j.baseUrl) $("#ccBaseUrl").value = j.base_url || j.baseUrl;
+    $("#ccStatus").textContent = "Filled in — press Connect.";
+  } catch {
+    $("#ccStatus").textContent = "That isn't the connection JSON — it looks like {\"computer_id\": 3, \"token\": \"…\"}.";
+  }
+});
+$("#ccConnect").addEventListener("click", async () => {
+  $("#ccStatus").textContent = "Connecting…";
+  $("#ccStatus").style.color = "";
+  const res = await chrome.runtime.sendMessage({ type: "bridgeConnect", baseUrl: $("#ccBaseUrl").value.trim(), computerId: $("#ccComputerId").value.trim(), token: $("#ccToken").value.trim() });
+  if (!res?.ok) {
+    $("#ccStatus").textContent = res?.error || "Couldn't connect.";
+    $("#ccStatus").style.color = "#b42318";
+    return;
+  }
+  $("#ccToken").value = "";
+  $("#ccPaste").value = "";
+  ccRefresh(true);
+});
+$("#ccDisconnect").addEventListener("click", async () => {
+  await chrome.runtime.sendMessage({ type: "bridgeDisconnect" });
+  ccRefresh(true);
+});
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.bridge) ccRefresh(true);
+});
+ccRefresh(true);
