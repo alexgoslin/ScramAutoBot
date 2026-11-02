@@ -151,12 +151,24 @@ document.querySelectorAll(".tabs button").forEach((btn) =>
   })
 );
 
+// Open Settings on a given page (options.html#connection…), reusing an open Settings tab.
+async function openSettings(page = "overview") {
+  const url = chrome.runtime.getURL(`options/options.html#${page}`);
+  const [tab] = await chrome.tabs.query({ url: chrome.runtime.getURL("options/options.html*") });
+  if (tab) {
+    await chrome.tabs.update(tab.id, { url, active: true });
+    await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
+  } else await chrome.tabs.create({ url });
+}
 const openOptions = (e) => {
   e?.preventDefault();
-  chrome.runtime.openOptionsPage();
+  openSettings("overview");
 };
 $("#openOptions").addEventListener("click", openOptions);
-$("#bannerOptions").addEventListener("click", openOptions);
+$("#bannerOptions").addEventListener("click", (e) => {
+  e.preventDefault();
+  openSettings("claude");
+});
 
 // ---------------------------------------------------------------------------- data
 
@@ -905,7 +917,7 @@ $("#catSkipSite").addEventListener("click", () => send("categorySkipSite").catch
 
 const CC_APP_URL = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
 $("#devMode").addEventListener("change", (e) => chrome.storage.local.set({ uiDevMode: e.target.checked }));
-$("#ccSettings").addEventListener("click", openOptions);
+$("#ccSettings").addEventListener("click", () => openSettings("connection"));
 $("#ccOpen").addEventListener("click", () => chrome.tabs.create({ url: data.ccAppUrl || CC_APP_URL }));
 for (const [id, type] of [["#sPause", "autopilotPause"], ["#sResume", "autopilotResume"], ["#sStop", "autopilotStop"]]) {
   $(id).addEventListener("click", async (e) => {
@@ -939,7 +951,7 @@ function renderSimple() {
   const connected = !!(b.enabled && b.token && b.computerId);
   const fresh = connected && b.lastPollAt && Date.now() - b.lastPollAt < 60000;
   $("#ccBadge").className = `badge ${connected ? (fresh ? "connected" : "offline") : ""}`;
-  $("#ccBadge").textContent = connected ? (fresh ? "● connected" : "reconnecting…") : "not connected";
+  $("#ccBadge").textContent = connected ? (b.status === "connecting" ? "connecting…" : fresh ? "● connected" : "reconnecting…") : "not connected";
   $("#ccLine").textContent = connected
     ? `Runs are started and steered from the Control Center; this Chrome does the work.${b.lastPollAt ? ` Last check ${new Date(b.lastPollAt).toLocaleTimeString()}.` : ""}`
     : b.status === "error" && b.statusMessage
@@ -976,3 +988,10 @@ function renderSimple() {
   log.replaceChildren(...(ap.log || []).slice(-12).map((l) => el("li", {}, `${new Date(l.t).toLocaleTimeString()} ${l.msg}`)));
   log.scrollTop = log.scrollHeight;
 }
+
+// Keep the connection badge current even when nothing in storage changes for a while.
+setInterval(async () => {
+  if (data.uiDevMode === true) return;
+  data.bridge = (await chrome.storage.local.get("bridge")).bridge || null;
+  renderSimple();
+}, 5000);

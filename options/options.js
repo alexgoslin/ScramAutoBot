@@ -144,7 +144,6 @@ $("#resetUsage").addEventListener("click", async () => {
 chrome.storage.onChanged.addListener((changes) => changes.usage && showUsage());
 showUsage();
 
-load();
 
 // ---- lessons learned about Scram's AI
 async function renderLessons() {
@@ -238,3 +237,53 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.bridge) ccRefresh(true);
 });
 ccRefresh(true);
+
+
+// ---- Pages: one section at a time, chosen by the address (#connection, #autopilot…), so the
+// side panel can link straight to a page.
+const PAGES = [...document.querySelectorAll(".page")].map((x) => x.dataset.page);
+function showPage() {
+  const page = PAGES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
+  document.querySelectorAll(".page").forEach((x) => x.classList.toggle("active", x.dataset.page === page));
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.nav === page));
+  if (page === "overview") renderOverview();
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", showPage);
+
+// Quick settings on the Overview mirror the real fields (which save automatically).
+document.querySelectorAll("[data-mirror]").forEach((m) => {
+  const real = $(`#${m.dataset.mirror}`);
+  m.addEventListener(m.type === "checkbox" || m.tagName === "SELECT" ? "change" : "input", () => {
+    if (m.type === "checkbox") real.checked = m.checked;
+    else real.value = m.value;
+  });
+});
+function syncMirrors() {
+  document.querySelectorAll("[data-mirror]").forEach((m) => {
+    const real = $(`#${m.dataset.mirror}`);
+    if (m.type === "checkbox") m.checked = real.checked;
+    else m.value = real.value;
+  });
+}
+
+async function renderOverview() {
+  syncMirrors();
+  const { apiKey = "", usage = { input: 0, output: 0, calls: 0 }, bridge = {} } = await chrome.storage.local.get(["apiKey", "usage", "bridge"]);
+  const connected = !!(bridge.enabled && bridge.token && bridge.computerId);
+  $("#dCc").textContent = connected ? "● Connected" : "Not connected";
+  $("#dCc").className = connected ? "ok" : "bad";
+  $("#dCcSub").textContent = connected ? (bridge.lastPollAt ? `last check ${new Date(bridge.lastPollAt).toLocaleTimeString()}` : "") : "Connect to run everything from the website";
+  $("#dKey").textContent = apiKey ? "Set ✓" : "Missing";
+  $("#dKey").className = apiKey ? "ok" : "bad";
+  $("#dKeySub").textContent = apiKey ? `model: ${$("#model").value || DEFAULT_SETTINGS.model}` : "Add your key to use Autopilot";
+  $("#dCost").textContent = `${usage.costEstimated ? "≈" : ""}${formatCost(totalCost(usage))}`;
+  $("#dCostSub").textContent = `${(usage.calls || 0).toLocaleString()} Claude calls, all time`;
+  $("#dLessons").textContent = String((await getLessons()).length);
+  $("#navCc").className = `dot ${connected ? "on" : ""}`;
+  $("#navKey").className = `dot ${apiKey ? "" : "warn"}`;
+}
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.bridge || changes.apiKey || changes.usage || changes.scramLessons) renderOverview();
+});
+load().then(showPage);
