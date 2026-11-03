@@ -39,30 +39,6 @@ function toast(msg) {
   toast._t = setTimeout(() => t.classList.add("hidden"), 3500);
 }
 
-async function send(type, extra = {}) {
-  const res = await chrome.runtime.sendMessage({ type, ...extra });
-  if (!res?.ok) throw new Error(res?.error || "Something went wrong.");
-  return res.data;
-}
-
-function button(label, onClick, cls = "") {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.textContent = label;
-  if (cls) b.className = cls;
-  b.addEventListener("click", async () => {
-    b.disabled = true;
-    try {
-      await onClick();
-    } catch (e) {
-      toast(e.message);
-    } finally {
-      b.disabled = false;
-    }
-  });
-  return b;
-}
-
 async function openSettings(page = "overview") {
   const url = chrome.runtime.getURL(`options/options.html#${page}`);
   const [tab] = await chrome.tabs.query({ url: chrome.runtime.getURL("options/options.html*") });
@@ -76,16 +52,6 @@ const openControlCenter = async () => {
   await chrome.tabs.create({ url: data.ccAppUrl || CC_APP_URL });
   window.close();
 };
-async function showTab(tabId) {
-  try {
-    const tab = await chrome.tabs.update(tabId, { active: true });
-    await chrome.windows.update(tab.windowId, { focused: true });
-    window.close();
-  } catch {
-    toast("That tab was closed.");
-  }
-}
-
 $("#needsMore").addEventListener("click", () => {
   $("#needsText").classList.toggle("open");
   render();
@@ -93,24 +59,12 @@ $("#needsMore").addEventListener("click", () => {
 $("#settings").addEventListener("click", () => openSettings("overview"));
 $("#ccSettings").addEventListener("click", () => openSettings("connection"));
 $("#openCc").addEventListener("click", openControlCenter);
+$("#needsGo").addEventListener("click", openControlCenter);
 $("#devMode").addEventListener("click", () => {
   // Open the side panel first, while the click still counts as a user gesture.
   if (windowId != null) chrome.sidePanel.open({ windowId }).catch(() => {});
   chrome.storage.local.set({ uiDevMode: true }).then(() => window.close());
 });
-for (const [id, type] of [["#pause", "autopilotPause"], ["#resume", "autopilotResume"], ["#stop", "autopilotStop"]]) {
-  $(id).addEventListener("click", async (e) => {
-    e.target.disabled = true;
-    try {
-      await send(type);
-    } catch (err) {
-      toast(err.message);
-    } finally {
-      e.target.disabled = false;
-    }
-  });
-}
-
 const host = (u) => {
   try {
     return new URL(u).hostname;
@@ -119,46 +73,28 @@ const host = (u) => {
   }
 };
 
-// What the run needs from you, if anything: { title, text, actions[], error }.
+// What the run needs from you, if anything: { title, text, error }. The popup only tells you;
+// everything is done in the Control Center (one button takes you there).
 function needsYou(ap) {
   if (!ap) return null;
   const c = ap.category;
   if (ap.status === "waiting" && ap.phase === "qa") {
     const n = ap.qa?.questions?.length || 0;
-    return {
-      title: `❓ ${n} question${n === 1 ? "" : "s"} for you`,
-      text: "Answer them in the Control Center (the design vibe first, then a few build questions).",
-      actions: [button("Answer in Control Center ↗", openControlCenter, "primary"), button("Use recommended answers", () => send("autopilotAnswer", { answers: {} }))],
-    };
+    return { title: `❓ ${n} question${n === 1 ? "" : "s"} for you`, text: "Answer them in the Control Center — the design vibe first, then a few build questions." };
   }
   if (ap.status === "waiting" && ap.phase === "cat-confirm") {
     const left = (c?.sites || []).filter((s) => !s.decision).length;
-    return { title: "🗂 Confirm the suggested sites", text: `${left} site${left === 1 ? "" : "s"} to accept or skip in the Control Center.`, actions: [button("Confirm in Control Center ↗", openControlCenter, "primary")] };
+    return { title: "🗂 Confirm the suggested sites", text: `${left} site${left === 1 ? "" : "s"} to accept or skip in the Control Center.` };
   }
   if (ap.status === "waiting" && ap.phase === "cat-explore") {
     const m = c?.members?.[c.memberIndex];
-    return {
-      title: `🔑 Log in to ${m?.product || "the site"}`,
-      text: "Log in (or sign up) in the tab I opened and go to the app's main screen, then press continue.",
-      actions: [
-        ...(c?.tabId != null ? [button("Show the tab", () => showTab(c.tabId))] : []),
-        button("I'm logged in — continue", () => send("categoryLoggedIn"), "primary"),
-        button("Skip this site", () => send("categorySkipSite")),
-      ],
-    };
+    return { title: `🔑 Log in to ${m?.product || "the site"}`, text: "Log in (or sign up) in the tab ScramAutoBuild opened, then press “I'm logged in — continue” in the Control Center — or skip this site there." };
   }
   const reason = ap.pauseReason || ap.message || "";
-  if (ap.status === "paused" && /log ?in|logged in|sign in/i.test(reason)) {
-    const tabId = ap.explore?.tabId;
-    return {
-      title: `🔑 Log in to ${host(ap.siteUrl)}`,
-      text: reason,
-      actions: [...(tabId != null ? [button("Show the tab", () => showTab(tabId))] : []), button("I'm logged in — continue", () => send("autopilotResume"), "primary")],
-    };
-  }
-  if (ap.status === "paused" && !/paused by you/i.test(reason)) return { title: "Autopilot paused", text: reason || "It needs you before it can carry on.", actions: [button("Resume", () => send("autopilotResume"), "primary")] };
-  if (ap.status === "error") return { title: "⚠️ Something went wrong", text: reason || "The run stopped with an error.", actions: [button("Try again", () => send("autopilotResume"), "primary")], error: true };
-  if (ap.status === "waiting") return { title: "⏳ Waiting for you", text: ap.message || "", actions: [button("Open Control Center ↗", openControlCenter, "primary")] };
+  if (ap.status === "paused" && /log ?in|logged in|sign in/i.test(reason)) return { title: `🔑 Log in to ${host(ap.siteUrl)}`, text: `Log in in the tab ScramAutoBuild opened, then press “I'm logged in — continue” in the Control Center. (${reason})` };
+  if (ap.status === "paused" && !/paused by you/i.test(reason)) return { title: "Autopilot paused", text: `${reason || "It needs you before it can carry on."} Resume it from the Control Center.` };
+  if (ap.status === "error") return { title: "⚠️ Something went wrong", text: `${reason || "The run stopped with an error."} Try again from the Control Center.`, error: true };
+  if (ap.status === "waiting") return { title: "⏳ Waiting for you", text: `${ap.message || ""} See the Control Center.`.trim() };
   return null;
 }
 
@@ -184,11 +120,6 @@ function render() {
     const t = $("#needsText");
     $("#needsMore").classList.toggle("hidden", !t.classList.contains("open") && t.scrollHeight <= t.clientHeight + 2);
     $("#needsMore").textContent = t.classList.contains("open") ? "Show less" : "Show more";
-    // Rebuild the buttons only when the situation changes (re-renders mustn't eat a click).
-    if ($("#needsActions").dataset.key !== need.title) {
-      $("#needsActions").replaceChildren(...need.actions);
-      $("#needsActions").dataset.key = need.title;
-    }
   }
 
   $("#runEmpty").classList.toggle("hidden", !!ap);
@@ -210,7 +141,7 @@ function render() {
   );
   $("#stage").textContent = finished ? "✓ Finished" : track[idx]?.[1] || ap.phase;
   $("#stageNo").textContent = finished ? `${track.length} of ${track.length}` : `Stage ${idx + 1} of ${track.length}`;
-  $("#runMsg").textContent = need || finished ? "" : ap.status === "paused" ? ap.pauseReason || "" : ap.message || "";
+  $("#runMsg").textContent = need || finished ? "" : ap.status === "paused" ? "Paused — resume it from the Control Center." : ap.status === "stopped" ? "Stopped — start it again from the Control Center." : ap.message || "";
 
   const ex = ap.explore || {};
   const bd = ap.build || {};
@@ -237,10 +168,6 @@ function render() {
       return t;
     })
   );
-  const active = ["running", "paused", "waiting"].includes(ap.status);
-  $("#pause").classList.toggle("hidden", ap.status !== "running");
-  $("#resume").classList.toggle("hidden", !(ap.status === "stopped" || (ap.status === "paused" && /paused by you/i.test(ap.pauseReason || ""))));
-  $("#stop").classList.toggle("hidden", !active);
 }
 
 async function load() {

@@ -31,6 +31,20 @@ async function updateActionBadge(ap) {
 }
 applyActionMode();
 store.get("autopilot", null).then(updateActionBadge);
+
+// Normal mode: clicking a ScramAutoBuild notification opens the Control Center.
+const CC_APP_URL = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
+chrome.notifications?.onClicked.addListener(async (id) => {
+  const { uiDevMode, ccAppUrl } = await chrome.storage.local.get(["uiDevMode", "ccAppUrl"]);
+  chrome.notifications.clear(id);
+  if (uiDevMode === true) return;
+  const url = ccAppUrl || CC_APP_URL;
+  const [open] = await chrome.tabs.query({ url: `${new URL(url).origin}/*` }).catch(() => []);
+  if (open) {
+    await chrome.tabs.update(open.id, { active: true });
+    await chrome.windows.update(open.windowId, { focused: true }).catch(() => {});
+  } else await chrome.tabs.create({ url });
+});
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.uiDevMode) applyActionMode();
