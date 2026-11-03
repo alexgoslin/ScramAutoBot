@@ -48,8 +48,20 @@ async function openSettings(page = "overview") {
   } else await chrome.tabs.create({ url });
   window.close();
 }
+// Opens the Control Center — on the current run's page when the app's address and the run are known.
+function controlCenterUrl() {
+  const runId = data.autopilot?.startedAt ? data.bridge?.runIds?.[String(data.autopilot.startedAt)] : null;
+  if (data.ccAppUrl && Number.isInteger(runId)) {
+    try {
+      return new URL(`/runs/${runId}`, data.ccAppUrl).href;
+    } catch {
+      /* fall through */
+    }
+  }
+  return data.ccAppUrl || CC_APP_URL;
+}
 const openControlCenter = async () => {
-  await chrome.tabs.create({ url: data.ccAppUrl || CC_APP_URL });
+  await chrome.tabs.create({ url: controlCenterUrl() });
   window.close();
 };
 $("#needsMore").addEventListener("click", () => {
@@ -59,7 +71,7 @@ $("#needsMore").addEventListener("click", () => {
 $("#settings").addEventListener("click", () => openSettings("overview"));
 $("#ccSettings").addEventListener("click", () => openSettings("connection"));
 $("#openCc").addEventListener("click", openControlCenter);
-$("#needsGo").addEventListener("click", openControlCenter);
+$("#needsGo").addEventListener("click", () => ($("#needsGo").textContent === "Connection settings" ? openSettings("connection") : openControlCenter()));
 $("#devMode").addEventListener("click", () => {
   // Open the side panel first, while the click still counts as a user gesture.
   if (windowId != null) chrome.sidePanel.open({ windowId }).catch(() => {});
@@ -110,6 +122,13 @@ function render() {
   const need = needsYou(ap);
   $("#needs").classList.toggle("hidden", !need);
   $("#needs").classList.toggle("err", !!need?.error);
+  if (need && !(connected && fresh)) {
+    // Keep waiting for the website — never fall back to asking here (Dev mode is the way to do that).
+    need.text = connected
+      ? `Waiting for an answer on the Control Center (offline — reconnecting…). ${need.text}`
+      : `${need.text} The Control Center isn't connected yet — connect it (Connection settings), or turn on Dev mode to answer in the side panel.`;
+  }
+  $("#needsGo").textContent = !connected && need ? "Connection settings" : "Open Control Center ↗";
   if (need) {
     $("#needsTitle").textContent = need.title;
     if ($("#needsText").textContent !== need.text) {
