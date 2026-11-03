@@ -100,3 +100,4 @@ button.more:hover { background: none; }
 .cc-actions button { white-space: nowrap; }
 .cc-actions button.primary { font-size: 12.5px; }
 .cc-actions button.link { font-size: 12px; }
+#needsQuick { display: contents; }

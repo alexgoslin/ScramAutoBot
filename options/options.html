@@ -104,6 +104,7 @@
         <option value="full">Full interaction — click everything (likes, follows, toggles… undone afterwards), type into text boxes</option>
         <option value="safe">Safe — read-only: menus, tabs, modals, links and search only</option>
       </select>
+      <label class="check"><input id="workInOwnWindow" type="checkbox" /> Work in its own Chrome window — Autopilot opens every tab it uses (exploration, sites to research, Scram) in a separate ScramAutoBuild window, so it never takes over the window you're using. Keep that window on screen (it can sit behind others, just don't minimise it): Scram pauses its AI when its tab is hidden.</label>
       <label class="check"><input id="finalDesignReview" type="checkbox" /> Final review after the build — once every step is built, the extension tests the finished app itself in Run mode (crawls its pages, clicks its buttons and menus, checks the layout at desktop size), then tells Scram's AI what to fix — up to 3 rounds. Nothing is tested by the extension during the build.</label>
       <label class="check"><input id="askQuestions" type="checkbox" /> Ask me questions before planning the build — after researching, Claude asks how you want unclear parts built in Scram (with recommended answers), and waits for you</label>
       <label class="check"><input id="coreFeaturesOnly" type="checkbox" /> Core features only — before crawling, Claude decides the site's core features (what most users do there) and what's niche or rarely used; Autopilot then crawls, specs and builds only the core</label>

@@ -85,28 +85,78 @@ const host = (u) => {
   }
 };
 
-// What the run needs from you, if anything: { title, text, error }. The popup only tells you;
-// everything is done in the Control Center (one button takes you there).
+// Quick fixes: small things (a login, Scram credits, a closed tab) can be done right here with
+// one button. Questions and choosing sites are only answered on the Control Center.
+async function act(type) {
+  const res = await chrome.runtime.sendMessage({ type });
+  if (!res?.ok) throw new Error(res?.error || "Something went wrong.");
+}
+async function showTab(tabId) {
+  try {
+    const tab = await chrome.tabs.update(tabId, { active: true });
+    await chrome.windows.update(tab.windowId, { focused: true, state: "normal" }).catch(() => chrome.windows.update(tab.windowId, { focused: true }));
+    window.close();
+  } catch {
+    toast("That tab was closed.");
+  }
+}
+function button(label, onClick, cls = "") {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.addEventListener("click", async () => {
+    b.disabled = true;
+    try {
+      await onClick();
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      b.disabled = false;
+    }
+  });
+  return b;
+}
+
+// What the run needs from you, if anything: { key, title, text, quick: [buttons], error }.
 function needsYou(ap) {
   if (!ap) return null;
   const c = ap.category;
   if (ap.status === "waiting" && ap.phase === "qa") {
     const n = ap.qa?.questions?.length || 0;
-    return { title: `❓ ${n} question${n === 1 ? "" : "s"} for you`, text: "Answer them in the Control Center — the design vibe first, then a few build questions." };
+    return { key: "qa", title: `❓ ${n} question${n === 1 ? "" : "s"} for you`, text: "Answer them on the Control Center — the design vibe first, then a few build questions." };
   }
   if (ap.status === "waiting" && ap.phase === "cat-confirm") {
     const left = (c?.sites || []).filter((s) => !s.decision).length;
-    return { title: "🗂 Confirm the suggested sites", text: `${left} site${left === 1 ? "" : "s"} to accept or skip in the Control Center.` };
+    return { key: "confirm", title: "🗂 Confirm the suggested sites", text: `${left} site${left === 1 ? "" : "s"} to accept or skip on the Control Center.` };
   }
   if (ap.status === "waiting" && ap.phase === "cat-explore") {
     const m = c?.members?.[c.memberIndex];
-    return { title: `🔑 Log in to ${m?.product || "the site"}`, text: "Log in (or sign up) in the tab ScramAutoBuild opened, then press “I'm logged in — continue” in the Control Center — or skip this site there." };
+    return {
+      key: `catlogin:${c?.memberIndex}`,
+      title: `🔑 Log in to ${m?.product || "the site"}`,
+      text: "Log in (or sign up) in ScramAutoBuild's window and open the app's main screen, then press “I'm logged in”.",
+      quick: [
+        button("I'm logged in", () => act("categoryLoggedIn"), "primary"),
+        ...(c?.tabId != null ? [button("Show the window", () => showTab(c.tabId))] : []),
+        button("Skip this site", () => act("categorySkipSite")),
+      ],
+    };
   }
   const reason = ap.pauseReason || ap.message || "";
-  if (ap.status === "paused" && /log ?in|logged in|sign in/i.test(reason)) return { title: `🔑 Log in to ${host(ap.siteUrl)}`, text: `Log in in the tab ScramAutoBuild opened, then press “I'm logged in — continue” in the Control Center. (${reason})` };
-  if (ap.status === "paused" && !/paused by you/i.test(reason)) return { title: "Autopilot paused", text: `${reason || "It needs you before it can carry on."} Resume it from the Control Center.` };
-  if (ap.status === "error") return { title: "⚠️ Something went wrong", text: `${reason || "The run stopped with an error."} Try again from the Control Center.`, error: true };
-  if (ap.status === "waiting") return { title: "⏳ Waiting for you", text: `${ap.message || ""} See the Control Center.`.trim() };
+  if (ap.status === "paused" && /log ?in|logged in|sign in/i.test(reason)) {
+    const scram = /log in to Scram|Scram needs you to log in/i.test(reason);
+    const tabId = scram ? ap.build?.tabId : ap.explore?.tabId;
+    return {
+      key: `login:${reason}`,
+      title: scram ? "🔑 Log in to Scram" : `🔑 Log in to ${host(ap.siteUrl)}`,
+      text: reason,
+      quick: [button("I'm logged in", () => act("autopilotResume"), "primary"), ...(tabId != null ? [button("Show the window", () => showTab(tabId))] : [])],
+    };
+  }
+  if (ap.status === "paused" && !/paused by you/i.test(reason)) return { key: `pause:${reason}`, title: "Autopilot paused", text: reason || "It needs you before it can carry on.", quick: [button("Done — continue", () => act("autopilotResume"), "primary")] };
+  if (ap.status === "error") return { key: `error:${reason}`, title: "⚠️ Something went wrong", text: reason || "The run stopped with an error.", quick: [button("Try again", () => act("autopilotResume"), "primary")], error: true };
+  if (ap.status === "waiting") return { key: `wait:${ap.message}`, title: "⏳ Waiting for you", text: `${ap.message || ""} See the Control Center.`.trim() };
   return null;
 }
 
@@ -122,13 +172,20 @@ function render() {
   const need = needsYou(ap);
   $("#needs").classList.toggle("hidden", !need);
   $("#needs").classList.toggle("err", !!need?.error);
-  if (need && !(connected && fresh)) {
+  if (need && !need.quick && !(connected && fresh)) {
     // Keep waiting for the website — never fall back to asking here (Dev mode is the way to do that).
     need.text = connected
       ? `Waiting for an answer on the Control Center (offline — reconnecting…). ${need.text}`
       : `${need.text} The Control Center isn't connected yet — connect it (Connection settings), or turn on Dev mode to answer in the side panel.`;
   }
-  $("#needsGo").textContent = !connected && need ? "Connection settings" : "Open Control Center ↗";
+  $("#needsGo").textContent = !connected && need && !need.quick ? "Connection settings" : "Open Control Center ↗";
+  $("#needsGo").className = need?.quick ? "" : "primary";
+  // Rebuild the quick-fix buttons only when the situation changes (re-renders mustn't eat a click).
+  const qk = need?.quick ? need.key : "";
+  if ($("#needsQuick").dataset.key !== qk) {
+    $("#needsQuick").replaceChildren(...(need?.quick || []));
+    $("#needsQuick").dataset.key = qk;
+  }
   if (need) {
     $("#needsTitle").textContent = need.title;
     if ($("#needsText").textContent !== need.text) {

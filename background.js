@@ -32,6 +32,20 @@ async function updateActionBadge(ap) {
 applyActionMode();
 store.get("autopilot", null).then(updateActionBadge);
 
+// A notification's quick-fix button ("I'm logged in", "Skip this site", "Done — continue"):
+// run it through the same handlers as everything else.
+chrome.notifications?.onButtonClicked.addListener(async (id, index) => {
+  const { notifActions = {} } = await chrome.storage.session.get("notifActions");
+  const type = notifActions[id]?.[index];
+  chrome.notifications.clear(id);
+  if (!type || !handlers[type]) return;
+  try {
+    await handlers[type]({ type });
+  } catch (e) {
+    chrome.notifications.create({ type: "basic", iconUrl: chrome.runtime.getURL("icons/icon128.png"), title: "Couldn't do that", message: String(e.message || e).slice(0, 250) });
+  }
+});
+
 // Normal mode: clicking a ScramAutoBuild notification opens the Control Center.
 const CC_APP_URL = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
 chrome.notifications?.onClicked.addListener(async (id) => {

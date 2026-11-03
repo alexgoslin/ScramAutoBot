@@ -19,6 +19,7 @@ async function load() {
   $("#autoSubmit").checked = settings.autoSubmit;
   for (const k of ["explorationMode", "maxPages", "maxInteractionsPerPage", "actionDelayMs", "explorerModel", "scramIdleSeconds"]) $(`#${k}`).value = settings[k];
   for (const k of ["recordNetwork", "recordResponseBodies", "screenshots", "autopilotBuild", "productFocus", "scramSendAsFile", "coreFeaturesOnly", "askQuestions", "finalDesignReview"]) $(`#${k}`).checked = settings[k];
+  $("#workInOwnWindow").checked = settings.workInOwnWindow !== false;
   $("#slimContext").checked = settings.slimContext !== false;
   $("#stepSize").value = settings.stepSize || "standard";
   $("#detailedSteps").checked = settings.detailedSteps !== false;
@@ -56,6 +57,7 @@ function readSettings() {
     coreFeaturesOnly: $("#coreFeaturesOnly").checked,
     askQuestions: $("#askQuestions").checked,
     finalDesignReview: $("#finalDesignReview").checked,
+    workInOwnWindow: $("#workInOwnWindow").checked,
     slimContext: $("#slimContext").checked,
     stepSize: $("#stepSize").value === "small" ? "small" : "standard",
     detailedSteps: $("#detailedSteps").checked,
