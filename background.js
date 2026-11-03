@@ -8,6 +8,7 @@ import * as skillsTest from "./lib/skills-test.js";
 import * as scramExplorer from "./lib/scram-explorer.js";
 import * as categoryLib from "./lib/category.js";
 import * as bridge from "./lib/bridge.js";
+import * as bridgeReporter from "./lib/bridge-reporter.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
@@ -46,19 +47,20 @@ chrome.notifications?.onButtonClicked.addListener(async (id, index) => {
   }
 });
 
-// Normal mode: clicking a ScramAutoBuild notification opens the Control Center.
-const CC_APP_URL = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
+// Normal mode: clicking a ScramAutoBuild notification opens the Control Center (the run's page
+// when it's known).
 chrome.notifications?.onClicked.addListener(async (id) => {
-  const { uiDevMode, ccAppUrl } = await chrome.storage.local.get(["uiDevMode", "ccAppUrl"]);
+  const { uiDevMode } = await chrome.storage.local.get("uiDevMode");
   chrome.notifications.clear(id);
   if (uiDevMode === true) return;
-  const url = ccAppUrl || CC_APP_URL;
+  const url = await bridge.siteUrl("run");
   const [open] = await chrome.tabs.query({ url: `${new URL(url).origin}/*` }).catch(() => []);
   if (open) {
-    await chrome.tabs.update(open.id, { active: true });
+    await chrome.tabs.update(open.id, { url, active: true });
     await chrome.windows.update(open.windowId, { focused: true }).catch(() => {});
   } else await chrome.tabs.create({ url });
 });
+
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.uiDevMode) applyActionMode();
@@ -314,7 +316,16 @@ const handlers = {
   autopilotNote: ({ text }) => autopilot.addNote(text),
 
   // Control Center connection (Settings → Control Center). Opt-in; nothing runs until connected.
-  bridgeConnect: ({ baseUrl, computerId, token }) => bridge.connect({ baseUrl, computerId, token }),
+  bridgeConnect: ({ baseUrl, computerId, token, siteBase }) => bridge.connect({ baseUrl, computerId, token, siteBase }),
+  bridgeSwitchEnv: ({ env }) => bridge.switchEnv(env),
+  bridgeSetSite: ({ siteBase }) => bridge.setSiteBase(siteBase),
+  // First connection to an (empty) Control Center: optionally upload everything already made here.
+  bridgeUploadDocs: async () => {
+    const res = await bridgeReporter.syncAll();
+    await bridge.markUploadOffered(true);
+    return res;
+  },
+  bridgeDismissUpload: () => bridge.markUploadOffered(false),
   bridgeDisconnect: () => bridge.disconnect("Disconnected"),
   bridgeStatus: ({ kick }) => {
     if (kick) bridge.kick(); // an extension page opened: poll now (spec 9)

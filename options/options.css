@@ -104,3 +104,11 @@ button.small { padding: 4px 10px; font-size: 12px; justify-self: start; }
 .trouble { margin: 8px 0 14px; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; }
 .cc-adv { display: grid; gap: 8px; padding: 8px 0 16px; }
 .hidden { display: none !important; }
+
+.cc-env { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cc-env-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-right: 4px; }
+.cc-env-btn { display: inline-flex; align-items: baseline; gap: 6px; border-radius: 999px; padding: 6px 14px; }
+.cc-env-btn[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.cc-env-btn[aria-checked="true"] .hint { color: rgba(255,255,255,.8); }
+.cc-upload { display: grid; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--accent-line); background: var(--accent-soft); }
+.cc-upload p { margin: 4px 0 0; }

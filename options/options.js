@@ -186,24 +186,43 @@ chrome.storage.onChanged.addListener((changes) => {
 renderLessons();
 
 // ---- Control Center connection (lib/bridge.js; runs in the background worker)
-const DEFAULT_CC_URL = "https://z07w3d61njwbx5lbgc5gzqk2.dev.scramapps.com/api/dataSource/oAC_003FG/";
+const ENV_DEFAULTS = {
+  live: { baseUrl: "https://brownmoina242.scramapps.com/api/dataSource/oAC_003FG/", siteBase: "https://robobuild.builtonscram.com" },
+  dev: { baseUrl: "https://z07w3d61njwbx5lbgc5gzqk2.dev.scramapps.com/api/dataSource/oAC_003FG/", siteBase: "" },
+};
+let ccEnv = "live";
 let ccWasConnected = null;
 function ccRender(s) {
   if (!s) return;
-  $("#ccBaseUrl").value ||= s.baseUrl || DEFAULT_CC_URL;
-  if (s.computerId && !$("#ccComputerId").value) $("#ccComputerId").value = s.computerId;
+  const envChanged = s.env !== ccEnv;
+  ccEnv = s.env || "live";
+  document.querySelectorAll(".cc-env-btn").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.env === ccEnv)));
+  // Fields belong to the selected environment: refill them when it changes.
+  if (envChanged || !$("#ccBaseUrl").value) $("#ccBaseUrl").value = s.baseUrl || ENV_DEFAULTS[ccEnv].baseUrl;
+  if (envChanged || document.activeElement !== $("#ccSiteBase")) $("#ccSiteBase").value = s.siteBase || "";
+  $("#ccSiteBase").placeholder = ENV_DEFAULTS[ccEnv].siteBase || "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/ (Scram editor)";
+  if (envChanged) {
+    $("#ccComputerId").value = s.computerId || "";
+    $("#ccToken").value = "";
+    $("#ccPaste").value = "";
+  } else if (s.computerId && !$("#ccComputerId").value) $("#ccComputerId").value = s.computerId;
   $("#ccToken").placeholder = s.tokenHint ? `saved (${s.tokenHint})` : "";
+  const name = ccEnv === "dev" ? "the dev Control Center" : "the live Control Center";
   const err = !s.connected && s.status === "error";
   $("#ccState").className = `cc-state ${s.connected ? "on" : err ? "err" : ""}`;
-  $("#ccStateTitle").textContent = s.connected ? "Connected to the Control Center" : err ? "Not connected — something went wrong" : s.status === "connecting" ? "Connecting…" : "Not connected yet";
+  $("#ccStateTitle").textContent = s.connected ? `Connected to ${name}` : err ? "Not connected — something went wrong" : s.status === "connecting" ? "Connecting…" : `Not connected to ${name} yet`;
   $("#ccStatus").textContent = s.connected
     ? `Connection #${s.computerId}${s.lastPollAt ? ` · last check ${new Date(s.lastPollAt).toLocaleTimeString()}` : ""}${s.outbox ? ` · ${s.outbox} report(s) waiting to retry` : ""}`
     : err
       ? s.statusMessage
-      : "Follow the steps below to connect.";
+      : ccEnv === "live"
+        ? "Paste your connection from robobuild.builtonscram.com → Extension (steps below)."
+        : "Paste your connection from the dev Control Center → Extension (steps below).";
   $("#ccDisconnect").classList.toggle("hidden", !s.connected);
+  // One-time offer after connecting to a Control Center: upload what this extension already made.
+  $("#ccUpload").classList.toggle("hidden", !(s.connected && !s.uploadOffered));
   // The how-to stays open until connected, then folds away (still there to connect again).
-  if (ccWasConnected !== s.connected) $("#ccHow").open = !s.connected;
+  if (ccWasConnected !== s.connected || envChanged) $("#ccHow").open = !s.connected;
   ccWasConnected = s.connected;
 }
 function ccMessage(text, isError = false) {
@@ -234,7 +253,7 @@ async function ccConnect() {
   ccBusy = true;
   ccMessage("Connecting…");
   try {
-    const res = await chrome.runtime.sendMessage({ type: "bridgeConnect", baseUrl: $("#ccBaseUrl").value.trim(), computerId: $("#ccComputerId").value.trim(), token: $("#ccToken").value.trim() });
+    const res = await chrome.runtime.sendMessage({ type: "bridgeConnect", baseUrl: $("#ccBaseUrl").value.trim(), computerId: $("#ccComputerId").value.trim(), token: $("#ccToken").value.trim(), siteBase: $("#ccSiteBase").value.trim() });
     if (!res?.ok) return ccMessage(res?.error || "Couldn't connect.", true);
     $("#ccToken").value = "";
     $("#ccPaste").value = "";
@@ -244,13 +263,39 @@ async function ccConnect() {
   }
 }
 $("#ccConnect").addEventListener("click", ccConnect);
-const CC_APP_DEFAULT = "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
-for (const id of ["#ccOpenApp", "#ccOpenApp2"]) $(id).addEventListener("click", async () => chrome.tabs.create({ url: (await chrome.storage.local.get("ccAppUrl")).ccAppUrl || CC_APP_DEFAULT }));
-chrome.storage.local.get("ccAppUrl").then(({ ccAppUrl }) => ($("#ccAppUrl").value = ccAppUrl || ""));
-$("#ccAppUrl").addEventListener("change", () => {
-  const v = $("#ccAppUrl").value.trim();
-  if (v && !/^https:\/\//i.test(v)) return ccMessage("The Control Center web address must start with https://", true);
-  chrome.storage.local.set({ ccAppUrl: v });
+const siteFor = async () => (await chrome.runtime.sendMessage({ type: "bridgeStatus" }))?.data;
+async function openSite(path = "") {
+  const st = await siteFor();
+  const base = (st?.siteBase || ENV_DEFAULTS[st?.env || "live"].siteBase || "").replace(/\/+$/, "");
+  chrome.tabs.create({ url: base ? `${base}${path}` : "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/" });
+}
+$("#ccOpenApp").addEventListener("click", () => openSite("/"));
+$("#ccOpenApp2").addEventListener("click", () => openSite("/extension"));
+document.querySelectorAll(".cc-env-btn").forEach((b) =>
+  b.addEventListener("click", async () => {
+    if (b.dataset.env === ccEnv) return;
+    const res = await chrome.runtime.sendMessage({ type: "bridgeSwitchEnv", env: b.dataset.env });
+    if (res?.ok) ccRender(res.data);
+    else ccMessage(res?.error || "Couldn't switch.", true);
+  })
+);
+$("#ccSiteBase").addEventListener("change", async () => {
+  const res = await chrome.runtime.sendMessage({ type: "bridgeSetSite", siteBase: $("#ccSiteBase").value.trim() });
+  if (!res?.ok) ccMessage(res?.error || "Couldn't save the website address.", true);
+});
+$("#ccUploadGo").addEventListener("click", async () => {
+  $("#ccUploadGo").disabled = true;
+  $("#ccUploadGo").textContent = "Uploading…";
+  const res = await chrome.runtime.sendMessage({ type: "bridgeUploadDocs" });
+  $("#ccUploadGo").disabled = false;
+  $("#ccUploadGo").textContent = "Upload my existing documents";
+  if (!res?.ok) return ccMessage(res?.error || "Couldn't upload them.", true);
+  await ccRefresh();
+  $("#ccStatus").textContent = `Uploaded ${res.data?.documents ?? 0} document(s) to the Control Center ✓`;
+});
+$("#ccUploadNo").addEventListener("click", async () => {
+  await chrome.runtime.sendMessage({ type: "bridgeDismissUpload" });
+  ccRefresh();
 });
 $("#ccDisconnect").addEventListener("click", async () => {
   await chrome.runtime.sendMessage({ type: "bridgeDisconnect" });

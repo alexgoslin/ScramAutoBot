@@ -48,20 +48,24 @@ async function openSettings(page = "overview") {
   } else await chrome.tabs.create({ url });
   window.close();
 }
-// Opens the Control Center — on the current run's page when the app's address and the run are known.
-function controlCenterUrl() {
-  const runId = data.autopilot?.startedAt ? data.bridge?.runIds?.[String(data.autopilot.startedAt)] : null;
-  if (data.ccAppUrl && Number.isInteger(runId)) {
-    try {
-      return new URL(`/runs/${runId}`, data.ccAppUrl).href;
-    } catch {
-      /* fall through */
-    }
-  }
-  return data.ccAppUrl || CC_APP_URL;
+// The Control Center website for the active environment (Live: robobuild.builtonscram.com).
+// "Open Control Center" goes to its Extension page; a run that needs you opens on its own page.
+const LIVE_SITE = "https://robobuild.builtonscram.com";
+function siteBase() {
+  const b = data.bridge || {};
+  return (b.siteBase || (b.env === "dev" ? "" : LIVE_SITE)).replace(/\/+$/, "");
 }
-const openControlCenter = async () => {
-  await chrome.tabs.create({ url: controlCenterUrl() });
+function controlCenterUrl(page = "extension") {
+  const base = siteBase();
+  if (!base) return CC_APP_URL; // Dev without a website address: the Scram editor
+  if (page === "run") {
+    const runId = data.autopilot?.startedAt ? data.bridge?.runIds?.[String(data.autopilot.startedAt)] : null;
+    return Number.isInteger(runId) ? `${base}/runs/${runId}` : `${base}/`;
+  }
+  return `${base}/extension`;
+}
+const openControlCenter = async (page = "extension") => {
+  await chrome.tabs.create({ url: controlCenterUrl(page) });
   window.close();
 };
 $("#needsMore").addEventListener("click", () => {
@@ -70,8 +74,8 @@ $("#needsMore").addEventListener("click", () => {
 });
 $("#settings").addEventListener("click", () => openSettings("overview"));
 $("#ccSettings").addEventListener("click", () => openSettings("connection"));
-$("#openCc").addEventListener("click", openControlCenter);
-$("#needsGo").addEventListener("click", () => ($("#needsGo").textContent === "Connection settings" ? openSettings("connection") : openControlCenter()));
+$("#openCc").addEventListener("click", () => openControlCenter("extension"));
+$("#needsGo").addEventListener("click", () => ($("#needsGo").textContent === "Connection settings" ? openSettings("connection") : openControlCenter("run")));
 $("#devMode").addEventListener("click", () => {
   // Open the side panel first, while the click still counts as a user gesture.
   if (windowId != null) chrome.sidePanel.open({ windowId }).catch(() => {});
@@ -247,11 +251,11 @@ function render() {
 }
 
 async function load() {
-  data = await chrome.storage.local.get(["autopilot", "bridge", "usage", "ccAppUrl"]);
+  data = await chrome.storage.local.get(["autopilot", "bridge", "usage"]);
   render();
 }
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes.autopilot || changes.bridge || changes.usage || changes.ccAppUrl)) load();
+  if (area === "local" && (changes.autopilot || changes.bridge || changes.usage)) load();
 });
 setInterval(render, 10000); // keeps the time and the connection badge current
 load();

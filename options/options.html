@@ -185,6 +185,12 @@
         only the run's progress, its log, the documents it writes and usage totals are sent.
       </p>
 
+      <div class="cc-env" role="radiogroup" aria-label="Environment">
+        <span class="cc-env-label">Environment</span>
+        <button type="button" class="cc-env-btn" data-env="live" role="radio">Live <span class="hint">robobuild.builtonscram.com</span></button>
+        <button type="button" class="cc-env-btn" data-env="dev" role="radio">Dev <span class="hint">testing only</span></button>
+      </div>
+
       <div id="ccState" class="cc-state">
         <span id="ccDot" class="cc-dot" aria-hidden="true"></span>
         <div class="cc-state-text">
@@ -197,6 +203,17 @@
         </div>
       </div>
 
+      <div id="ccUpload" class="cc-upload hidden">
+        <div>
+          <strong>Upload what you've already made?</strong>
+          <p class="hint">This Control Center starts empty. Upload every spec, step file, design concept, research briefing and category document saved in this extension, plus your usage totals, so its Outputs page has them. Finished runs aren't re-created.</p>
+        </div>
+        <div class="row">
+          <button id="ccUploadGo" type="button" class="primary small">Upload my existing documents</button>
+          <button id="ccUploadNo" type="button" class="small">No thanks</button>
+        </div>
+      </div>
+
       <details id="ccHow" class="cc-how" open>
         <summary>How to connect <span class="hint">— takes about a minute</span></summary>
         <ol class="steps">
@@ -204,7 +221,7 @@
             <span class="num">1</span>
             <div>
               <strong>Open the Control Center and sign in</strong>
-              <p class="hint">Use the button below (or your saved bookmark). If it opens the Scram editor, press <b>Run</b> at the top to open the app.</p>
+              <p class="hint">Use the button below — Live is <b>robobuild.builtonscram.com</b> (sign up there if you're new). For Dev, it opens the Scram editor: press <b>Run</b> at the top to open the app.</p>
               <button id="ccOpenApp2" type="button" class="small">Open Control Center ↗</button>
             </div>
           </li>
@@ -267,10 +284,10 @@
               <input id="ccToken" type="password" autocomplete="off" spellcheck="false" />
             </div>
           </div>
-          <label for="ccBaseUrl">Base URL (the Control Center's bridge address — only change it after the app is published)</label>
+          <label for="ccBaseUrl">Endpoint base (the bridge address for this environment — not the website; used when you press Connect)</label>
           <input id="ccBaseUrl" type="text" spellcheck="false" />
-          <label for="ccAppUrl">Control Center web address (what “Open Control Center” opens — paste the app's Run or Live address; blank = the Scram editor)</label>
-          <input id="ccAppUrl" type="text" spellcheck="false" placeholder="https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/" />
+          <label for="ccSiteBase">Website (what “Open Control Center” opens; runs open at /runs/&lt;id&gt;). Dev's address changes with every build — paste its Run address, or leave blank for the Scram editor.</label>
+          <input id="ccSiteBase" type="text" spellcheck="false" />
         </div>
       </details>
     </section>
