@@ -139,7 +139,7 @@ function needsYou(ap) {
     return {
       key: `catlogin:${c?.memberIndex}`,
       title: `🔑 Log in to ${m?.product || "the site"}`,
-      text: "Log in (or sign up) in ScramAutoBuild's window and open the app's main screen, then press “I'm logged in”.",
+      text: "Log in (or sign up) in RoboBuild's window and open the app's main screen, then press “I'm logged in”.",
       quick: [
         button("I'm logged in", () => act("categoryLoggedIn"), "primary"),
         ...(c?.tabId != null ? [button("Show the window", () => showTab(c.tabId))] : []),

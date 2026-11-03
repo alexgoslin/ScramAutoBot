@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>ScramAutoBuild — Settings</title>
+  <title>RoboBuild — Settings</title>
   <link rel="stylesheet" href="options.css" />
 </head>
 <body>
   <div class="layout">
   <aside class="sidebar">
-    <div class="brand"><img src="../icons/icon48.png" alt="" />ScramAutoBuild</div>
+    <div class="brand"><img src="../icons/icon48.png" alt="" />RoboBuild</div>
     <nav id="nav" aria-label="Settings pages">
       <a href="#overview" data-nav="overview">🏠 Overview</a>
       <a href="#connection" data-nav="connection">🔗 Control Center <span id="navCc" class="dot"></span></a>
@@ -104,7 +104,7 @@
         <option value="full">Full interaction — click everything (likes, follows, toggles… undone afterwards), type into text boxes</option>
         <option value="safe">Safe — read-only: menus, tabs, modals, links and search only</option>
       </select>
-      <label class="check"><input id="workInOwnWindow" type="checkbox" /> Work in its own Chrome window — Autopilot opens every tab it uses (exploration, sites to research, Scram) in a separate ScramAutoBuild window, so it never takes over the window you're using. Keep that window on screen (it can sit behind others, just don't minimise it): Scram pauses its AI when its tab is hidden.</label>
+      <label class="check"><input id="workInOwnWindow" type="checkbox" /> Work in its own Chrome window — Autopilot opens every tab it uses (exploration, sites to research, Scram) in a separate RoboBuild window, so it never takes over the window you're using. Keep that window on screen (it can sit behind others, just don't minimise it): Scram pauses its AI when its tab is hidden.</label>
       <label class="check"><input id="finalDesignReview" type="checkbox" /> Final review after the build — once every step is built, the extension tests the finished app itself in Run mode (crawls its pages, clicks its buttons and menus, checks the layout at desktop size), then tells Scram's AI what to fix — up to 3 rounds. Nothing is tested by the extension during the build.</label>
       <label class="check"><input id="askQuestions" type="checkbox" /> Ask me questions before planning the build — after researching, Claude asks how you want unclear parts built in Scram (with recommended answers), and waits for you</label>
       <label class="check"><input id="coreFeaturesOnly" type="checkbox" /> Core features only — before crawling, Claude decides the site's core features (what most users do there) and what's niche or rarely used; Autopilot then crawls, specs and builds only the core</label>
@@ -180,7 +180,7 @@
     <section id="controlCenter" class="page" data-page="connection">
       <h2>Control Center connection</h2>
       <p class="hint">
-        The Control Center is the ScramAutoBuild website: you start runs, answer questions and read everything there,
+        The Control Center is the RoboBuild website (<a href="https://robobuild.builtonscram.com" target="_blank" rel="noopener">robobuild.builtonscram.com</a>): you start runs, answer questions and read everything there,
         while this extension does the work in this Chrome. Your Anthropic API key never leaves this browser —
         only the run's progress, its log, the documents it writes and usage totals are sent.
       </p>
@@ -220,9 +220,9 @@
           <li>
             <span class="num">1</span>
             <div>
-              <strong>Open the Control Center and sign in</strong>
-              <p class="hint">Use the button below — Live is <b>robobuild.builtonscram.com</b> (sign up there if you're new). For Dev, it opens the Scram editor: press <b>Run</b> at the top to open the app.</p>
-              <button id="ccOpenApp2" type="button" class="small">Open Control Center ↗</button>
+              <strong>Open the RoboBuild site and sign in</strong>
+              <p class="hint">Go to <a href="https://robobuild.builtonscram.com" target="_blank" rel="noopener">robobuild.builtonscram.com</a> and sign in — or sign up if you're new. (Testing on Dev? Switch the Environment above to Dev; the button below then opens the Scram editor — press <b>Run</b> at the top to open the app.)</p>
+              <button id="ccOpenApp2" type="button" class="small">Open RoboBuild ↗</button>
             </div>
           </li>
           <li>
@@ -254,7 +254,7 @@
             <span class="num ok">✓</span>
             <div>
               <strong>Check it worked</strong>
-              <p class="hint">This page turns green, and within a few seconds the Control Center's Extension page shows <b>Connected ●</b> with this extension's version. Start runs from <b>New run</b> in the Control Center; click the ScramAutoBuild icon in Chrome's toolbar any time to see what it's doing.</p>
+              <p class="hint">This page turns green, and within a few seconds the Control Center's Extension page shows <b>Connected ●</b> with this extension's version. Start runs from <b>New run</b> in the Control Center; click the RoboBuild icon in Chrome's toolbar any time to see what it's doing.</p>
             </div>
           </li>
         </ol>

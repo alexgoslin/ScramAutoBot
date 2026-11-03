@@ -1,4 +1,4 @@
-# ScramAutoBuild (Chrome extension)
+# RoboBuild (Chrome extension)
 
 A Manifest V3 Chrome side-panel extension that:
 
