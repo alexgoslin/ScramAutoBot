@@ -112,3 +112,7 @@ button.small { padding: 4px 10px; font-size: 12px; justify-self: start; }
 .cc-env-btn[aria-checked="true"] .hint { color: rgba(255,255,255,.8); }
 .cc-upload { display: grid; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--accent-line); background: var(--accent-soft); }
 .cc-upload p { margin: 4px 0 0; }
+
+.key-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+.key-badge.set { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.key-badge.missing { background: #fff8e8; color: #8a5a00; box-shadow: inset 0 0 0 1px #f3e1b4; }

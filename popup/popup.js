@@ -73,6 +73,7 @@ $("#needsMore").addEventListener("click", () => {
   render();
 });
 $("#settings").addEventListener("click", () => openSettings("overview"));
+$("#keyAdd").addEventListener("click", () => openSettings("claude"));
 $("#ccSettings").addEventListener("click", () => openSettings("connection"));
 $("#openCc").addEventListener("click", () => openControlCenter("extension"));
 $("#needsGo").addEventListener("click", () => ($("#needsGo").textContent === "Connection settings" ? openSettings("connection") : openControlCenter("run")));
@@ -158,6 +159,8 @@ function needsYou(ap) {
       quick: [button("I'm logged in", () => act("autopilotResume"), "primary"), ...(tabId != null ? [button("Show the window", () => showTab(tabId))] : [])],
     };
   }
+  if (ap.status === "paused" && /No Anthropic API key set/i.test(reason))
+    return { key: "nokey", title: "🔑 Add your Anthropic API key", text: "The run is paused because no Anthropic API key is set. Add it in Settings → Claude & models, then press Resume (here or on the RoboBuild site).", quick: [button("Add your API key", () => openSettings("claude"), "primary"), button("Resume", () => act("autopilotResume"))] };
   if (ap.status === "paused" && !/paused by you/i.test(reason)) return { key: `pause:${reason}`, title: "Autopilot paused", text: reason || "It needs you before it can carry on.", quick: [button("Done — continue", () => act("autopilotResume"), "primary")] };
   if (ap.status === "error") return { key: `error:${reason}`, title: "⚠️ Something went wrong", text: reason || "The run stopped with an error.", quick: [button("Try again", () => act("autopilotResume"), "primary")], error: true };
   if (ap.status === "waiting") return { key: `wait:${ap.message}`, title: "⏳ Waiting for you", text: `${ap.message || ""} See the Control Center.`.trim() };
@@ -171,6 +174,10 @@ function render() {
   $("#ccBadge").className = `badge ${connected ? (fresh || b.status === "connecting" ? "on" : "off") : ""}`;
   $("#ccBadge").textContent = connected ? (b.status === "connecting" ? "connecting…" : fresh ? "● connected" : "reconnecting…") : "not connected";
   $("#openCc").classList.toggle("primary", connected);
+
+  $("#keyWarn").classList.toggle("hidden", !!data.keySet);
+  $("#keyLine").className = `key-line${data.keySet ? "" : " missing"}`;
+  $("#keyLine").innerHTML = data.keySet ? "Anthropic API key: <b>Set ✓</b>" : "Anthropic API key: <b>Not set</b>";
 
   const ap = data.autopilot;
   const need = needsYou(ap);
@@ -251,11 +258,13 @@ function render() {
 }
 
 async function load() {
-  data = await chrome.storage.local.get(["autopilot", "bridge", "usage"]);
+  const got = await chrome.storage.local.get(["autopilot", "bridge", "usage", "apiKey"]);
+  // Only whether a key is saved — the key itself isn't kept in the popup.
+  data = { autopilot: got.autopilot, bridge: got.bridge, usage: got.usage, keySet: typeof got.apiKey === "string" && got.apiKey.trim().length > 0 };
   render();
 }
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes.autopilot || changes.bridge || changes.usage)) load();
+  if (area === "local" && (changes.autopilot || changes.bridge || changes.usage || changes.apiKey)) load();
 });
 setInterval(render, 10000); // keeps the time and the connection badge current
 load();

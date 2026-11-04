@@ -355,3 +355,14 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.bridge || changes.apiKey || changes.usage || changes.scramLessons) renderOverview();
 });
 load().then(showPage);
+
+// API key status next to the field: shows at a glance whether a key is saved.
+function renderKeyBadge(set) {
+  const b = $("#keyBadge");
+  b.className = `key-badge ${set ? "set" : "missing"}`;
+  b.textContent = set ? "Set ✓" : "Not set — runs can't start";
+}
+chrome.storage.local.get("apiKey").then(({ apiKey }) => renderKeyBadge(!!String(apiKey || "").trim()));
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.apiKey) renderKeyBadge(!!String(changes.apiKey.newValue || "").trim());
+});

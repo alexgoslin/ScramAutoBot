@@ -101,3 +101,6 @@ button.more:hover { background: none; }
 .cc-actions button.primary { font-size: 12.5px; }
 .cc-actions button.link { font-size: 12px; }
 #needsQuick { display: contents; }
+.key-line { font-size: 12px; color: var(--muted); }
+.key-line b { color: var(--accent); }
+.key-line.missing b { color: #b45309; }
