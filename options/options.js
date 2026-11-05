@@ -366,3 +366,44 @@ chrome.storage.local.get("apiKey").then(({ apiKey }) => renderKeyBadge(!!String(
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.apiKey) renderKeyBadge(!!String(changes.apiKey.newValue || "").trim());
 });
+
+// ---- Connected to the Control Center: settings live on the RoboBuild site. The moved settings are
+// shown read-only here (the connection page, tools and export stay as they are). "Edit here anyway"
+// unlocks them for this visit; changes still sync to the site.
+const MANAGED_PAGES = ["overview", "claude", "autopilot", "steps", "learned", "prompts", "data"];
+const KEEP_ENABLED = ["exportData"];
+let managedUnlocked = false;
+let managedNow = false; // the page is locked (connected, not unlocked)
+async function renderManaged() {
+  const res = await chrome.runtime.sendMessage({ type: "bridgeStatus" }).catch(() => null);
+  const st = res?.data;
+  const managed = !!st?.connected && !managedUnlocked;
+  managedNow = managed;
+  const page = PAGES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
+  $("#managedBanner").classList.toggle("hidden", !(st?.connected && MANAGED_PAGES.includes(page)));
+  $("#managedEdit").textContent = managedUnlocked ? "Editing here (syncs to the site)" : "Edit here anyway";
+  $("#managedEdit").disabled = managedUnlocked;
+  const base = (st?.siteBase || (st?.env === "dev" ? "" : "https://robobuild.builtonscram.com")).replace(/\/+$/, "");
+  $("#managedOpen").href = base ? `${base}/extension/settings` : "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
+  for (const p of MANAGED_PAGES) {
+    const sec = document.querySelector(`.page[data-page="${p}"]`);
+    if (!sec) continue;
+    sec.classList.toggle("managed-lock", managed);
+    sec.querySelectorAll("input, select, textarea, button").forEach((el) => {
+      if (KEEP_ENABLED.includes(el.id) || el.closest(".dash")) return;
+      el.disabled = managed;
+    });
+  }
+}
+$("#managedEdit").addEventListener("click", () => {
+  managedUnlocked = true;
+  renderManaged();
+});
+window.addEventListener("hashchange", renderManaged);
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.bridge || changes.bridgeEnv) renderManaged();
+  // Changed on the site while this page is open: show the new values (unless you're editing here).
+  if (managedNow && (changes.settings || changes.apiKey || changes.promptOverrides)) load().then(() => typeof syncMirrors === "function" && syncMirrors());
+  if (changes.scramLessons) renderLessons();
+});
+renderManaged();
