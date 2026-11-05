@@ -33,6 +33,15 @@ async function updateActionBadge(ap) {
 applyActionMode();
 store.get("autopilot", null).then(updateActionBadge);
 
+// One-time (Nov 2026): Alex's two prompts are exactly the bundled files — clear any stored custom
+// override so those texts are what's in use. Runs once, on the first start after this update.
+async function migratePrompts() {
+  const { migrations = {} } = await chrome.storage.local.get("migrations");
+  if (migrations.promptsExact202611) return;
+  await chrome.storage.local.set({ promptOverrides: {}, migrations: { ...migrations, promptsExact202611: true } });
+}
+migratePrompts().catch(console.error);
+
 // A notification's quick-fix button ("I'm logged in", "Skip this site", "Done — continue"):
 // run it through the same handlers as everything else.
 chrome.notifications?.onButtonClicked.addListener(async (id, index) => {
@@ -69,6 +78,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   applyActionMode();
+  // Installed or updated (incl. reloading the unpacked extension): send the real settings to the
+  // RoboBuild site at once, after the one-time prompt reset (no-op when not connected).
+  migratePrompts()
+    .catch(() => {})
+    .then(() => bridgeReporter.reportSettingsNow())
+    .catch(() => {});
   // Tidy step files saved by older versions (shorter context, short quick check at the end).
   store.streamlineSavedSteps().catch(console.error);
   // After an update/reload, carry on with a running Autopilot from where it left off
