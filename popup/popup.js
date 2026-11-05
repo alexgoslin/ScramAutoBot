@@ -68,12 +68,24 @@ const openControlCenter = async (page = "extension") => {
   await chrome.tabs.create({ url: controlCenterUrl(page) });
   window.close();
 };
+// Where the API key is set: the RoboBuild site's settings when connected; otherwise the
+// extension (its local settings in Dev mode, or the connection page to connect first).
+async function openKeySettings() {
+  const b = data.bridge || {};
+  if (b.enabled && b.token && b.computerId) {
+    const base = siteBase();
+    await chrome.tabs.create({ url: base ? `${base}/extension/settings` : CC_APP_URL });
+    return window.close();
+  }
+  const { uiDevMode } = await chrome.storage.local.get("uiDevMode");
+  return openSettings(uiDevMode === true ? "claude" : "connection");
+}
 $("#needsMore").addEventListener("click", () => {
   $("#needsText").classList.toggle("open");
   render();
 });
-$("#settings").addEventListener("click", () => openSettings("overview"));
-$("#keyAdd").addEventListener("click", () => openSettings("claude"));
+$("#settings").addEventListener("click", () => openSettings("connection"));
+$("#keyAdd").addEventListener("click", () => openKeySettings());
 $("#ccSettings").addEventListener("click", () => openSettings("connection"));
 $("#openCc").addEventListener("click", () => openControlCenter("extension"));
 $("#needsGo").addEventListener("click", () => ($("#needsGo").textContent === "Connection settings" ? openSettings("connection") : openControlCenter("run")));
@@ -160,7 +172,7 @@ function needsYou(ap) {
     };
   }
   if (ap.status === "paused" && /No Anthropic API key set/i.test(reason))
-    return { key: "nokey", title: "🔑 Add your Anthropic API key", text: "The run is paused because no Anthropic API key is set. Add it in Settings → Claude & models, then press Resume (here or on the RoboBuild site).", quick: [button("Add your API key", () => openSettings("claude"), "primary"), button("Resume", () => act("autopilotResume"))] };
+    return { key: "nokey", title: "🔑 Add your Anthropic API key", text: "The run is paused because no Anthropic API key is set. Add it in RoboBuild's settings on the RoboBuild site, then press Resume (here or on the site).", quick: [button("Add your API key", () => openKeySettings(), "primary"), button("Resume", () => act("autopilotResume"))] };
   if (ap.status === "paused" && !/paused by you/i.test(reason)) return { key: `pause:${reason}`, title: "Autopilot paused", text: reason || "It needs you before it can carry on.", quick: [button("Done — continue", () => act("autopilotResume"), "primary")] };
   if (ap.status === "error") return { key: `error:${reason}`, title: "⚠️ Something went wrong", text: reason || "The run stopped with an error.", quick: [button("Try again", () => act("autopilotResume"), "primary")], error: true };
   if (ap.status === "waiting") return { key: `wait:${ap.message}`, title: "⏳ Waiting for you", text: `${ap.message || ""} See the Control Center.`.trim() };

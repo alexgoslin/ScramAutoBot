@@ -162,12 +162,17 @@ async function openSettings(page = "overview") {
 }
 const openOptions = (e) => {
   e?.preventDefault();
-  openSettings("overview");
+  openSettings("connection");
 };
 $("#openOptions").addEventListener("click", openOptions);
 $("#bannerOptions").addEventListener("click", (e) => {
   e.preventDefault();
-  openSettings("claude");
+  // Connected: the API key is set on the RoboBuild site; otherwise in Dev mode's local settings.
+  const b = data.bridge || {};
+  if (b.enabled && b.token && b.computerId) {
+    const base = (b.siteBase || (b.env === "dev" ? "" : "https://robobuild.builtonscram.com")).replace(/\/+$/, "");
+    chrome.tabs.create({ url: base ? `${base}/extension/settings` : "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/" });
+  } else openSettings("claude");
 });
 
 // ---------------------------------------------------------------------------- data

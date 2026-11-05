@@ -10,28 +10,37 @@
   <aside class="sidebar">
     <div class="brand"><img src="../icons/icon48.png" alt="" />RoboBuild</div>
     <nav id="nav" aria-label="Settings pages">
-      <a href="#overview" data-nav="overview">🏠 Overview</a>
       <a href="#connection" data-nav="connection">🔗 Control Center <span id="navCc" class="dot"></span></a>
-      <a href="#claude" data-nav="claude">🤖 Claude &amp; models <span id="navKey" class="dot"></span></a>
-      <a href="#autopilot" data-nav="autopilot">🚀 Autopilot</a>
-      <a href="#steps" data-nav="steps">🧱 Step files</a>
-      <a href="#learned" data-nav="learned">🧠 What it learned</a>
-      <a href="#prompts" data-nav="prompts">✍️ Prompts</a>
-      <a href="#tools" data-nav="tools">🧪 Tools &amp; tests</a>
-      <a href="#data" data-nav="data">🗄 Data &amp; usage</a>
+      <a href="#tools" data-nav="tools" class="hidden">🧪 Tools &amp; tests</a>
+      <!-- Dev mode without a connection only: the old local settings (everything else is on the RoboBuild site) -->
+      <div class="nav-group hidden" data-local>Dev: local settings</div>
+      <a href="#claude" data-nav="claude" class="hidden" data-local>🤖 Claude &amp; models <span id="navKey" class="dot"></span></a>
+      <a href="#autopilot" data-nav="autopilot" class="hidden" data-local>🚀 Autopilot</a>
+      <a href="#steps" data-nav="steps" class="hidden" data-local>🧱 Step files</a>
+      <a href="#learned" data-nav="learned" class="hidden" data-local>🧠 What it learned</a>
+      <a href="#prompts" data-nav="prompts" class="hidden" data-local>✍️ Prompts</a>
+      <a href="#data" data-nav="data" class="hidden" data-local>🗄 Data &amp; usage</a>
     </nav>
-    <div class="savestate">
+    <div class="savestate hidden" data-local>
       <span class="hint">Changes save automatically.</span>
       <span id="saved" class="hint"></span>
       <button id="save" class="small" type="button">Save now</button>
     </div>
   </aside>
   <main>
-    <div id="managedBanner" class="managed hidden" role="status">
-      <div><strong>Settings are managed on the RoboBuild site.</strong> <span class="hint">They're shown here read-only; changes on the site arrive here within seconds.</span></div>
+    <!-- Settings live on the RoboBuild site: this page is the connection (+ tools in Dev mode). -->
+    <div id="siteBanner" class="managed" role="status">
+      <div id="siteBannerOn" class="hidden">
+        <strong>All other settings are on the RoboBuild site.</strong>
+        <span class="hint">Models, Autopilot, step files, lessons, prompts — and usage on its Usage page.</span>
+      </div>
+      <div id="siteBannerOff">
+        <strong>Connect to the RoboBuild site to change settings.</strong>
+        <span class="hint">Until then RoboBuild uses your current settings (or the recommended defaults).</span>
+      </div>
       <div class="row">
-        <a id="managedOpen" class="button-link" href="#" target="_blank" rel="noopener">Open settings ↗</a>
-        <button id="managedEdit" type="button" class="small">Edit here anyway</button>
+        <a id="siteSettings" class="button-link hidden" href="#" target="_blank" rel="noopener">Open settings ↗</a>
+        <a id="siteUsage" class="hidden" href="#" target="_blank" rel="noopener">Usage ↗</a>
       </div>
     </div>
     <section class="page" data-page="overview">
@@ -324,6 +333,7 @@
         <a class="tool" href="../tools/briefing.html" target="_blank"><strong>📄 Research briefings</strong><span>the plain-English write-ups of what Autopilot researched and intends to build.</span></a>
         <a class="tool" href="../tools/skills-test.html" target="_blank"><strong>🧪 Skills test</strong><span>watch it create and rename a project, switch to Run mode, change the preview size and more.</span></a>
       </div>
+      <div class="row"><button id="exportData" type="button">Export all data (JSON)</button><span class="hint">Downloads every site's specs, step files and build progress.</span></div>
     </section>
 
     <section class="danger page" data-page="data">
@@ -333,7 +343,6 @@
         <button id="resetUsage" type="button">Reset usage counter</button>
       </div>
       <div class="row">
-        <button id="exportData" type="button">Export all data (JSON)</button>
         <button id="clearData" type="button" class="danger-btn">Delete all captured data</button>
       </div>
     </section>

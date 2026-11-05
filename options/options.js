@@ -311,10 +311,12 @@ ccRefresh(true);
 // side panel can link straight to a page.
 const PAGES = [...document.querySelectorAll(".page")].map((x) => x.dataset.page);
 function showPage() {
-  const page = PAGES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
+  // Only the pages that are visible right now; anything else (incl. the old Overview) → Control Center.
+  const page = typeof visiblePages !== "undefined" && visiblePages.includes(location.hash.slice(1)) ? location.hash.slice(1) : "connection";
   document.querySelectorAll(".page").forEach((x) => x.classList.toggle("active", x.dataset.page === page));
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.nav === page));
-  if (page === "overview") renderOverview();
+  const banner = document.querySelector("#siteBanner");
+  if (banner) banner.classList.toggle("hidden", page !== "connection");
   window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", showPage);
@@ -367,43 +369,30 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.apiKey) renderKeyBadge(!!String(changes.apiKey.newValue || "").trim());
 });
 
-// ---- Connected to the Control Center: settings live on the RoboBuild site. The moved settings are
-// shown read-only here (the connection page, tools and export stay as they are). "Edit here anyway"
-// unlocks them for this visit; changes still sync to the site.
-const MANAGED_PAGES = ["overview", "claude", "autopilot", "steps", "learned", "prompts", "data"];
-const KEEP_ENABLED = ["exportData"];
-let managedUnlocked = false;
-let managedNow = false; // the page is locked (connected, not unlocked)
-async function renderManaged() {
-  const res = await chrome.runtime.sendMessage({ type: "bridgeStatus" }).catch(() => null);
+// ---- Settings live on the RoboBuild site. This page shows the Control Center connection only, plus
+// Tools & tests in Dev mode; in Dev mode WITHOUT a connection, the old local settings are shown
+// too (under "Dev: local settings") so the extension can be set up offline for development.
+const LOCAL_PAGES = ["claude", "autopilot", "steps", "learned", "prompts", "data"];
+let visiblePages = ["connection"];
+async function renderLayout() {
+  const [res, { uiDevMode }] = await Promise.all([chrome.runtime.sendMessage({ type: "bridgeStatus" }).catch(() => null), chrome.storage.local.get("uiDevMode")]);
   const st = res?.data;
-  const managed = !!st?.connected && !managedUnlocked;
-  managedNow = managed;
-  const page = PAGES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
-  $("#managedBanner").classList.toggle("hidden", !(st?.connected && MANAGED_PAGES.includes(page)));
-  $("#managedEdit").textContent = managedUnlocked ? "Editing here (syncs to the site)" : "Edit here anyway";
-  $("#managedEdit").disabled = managedUnlocked;
+  const dev = uiDevMode === true;
+  const local = dev && !st?.connected;
+  visiblePages = ["connection", ...(dev ? ["tools"] : []), ...(local ? LOCAL_PAGES : [])];
+  document.querySelectorAll("#nav [data-nav]").forEach((a) => a.classList.toggle("hidden", !visiblePages.includes(a.dataset.nav)));
+  document.querySelectorAll("[data-local]").forEach((el) => !el.dataset.nav && el.classList.toggle("hidden", !local));
   const base = (st?.siteBase || (st?.env === "dev" ? "" : "https://robobuild.builtonscram.com")).replace(/\/+$/, "");
-  $("#managedOpen").href = base ? `${base}/extension/settings` : "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
-  for (const p of MANAGED_PAGES) {
-    const sec = document.querySelector(`.page[data-page="${p}"]`);
-    if (!sec) continue;
-    sec.classList.toggle("managed-lock", managed);
-    sec.querySelectorAll("input, select, textarea, button").forEach((el) => {
-      if (KEEP_ENABLED.includes(el.id) || el.closest(".dash")) return;
-      el.disabled = managed;
-    });
-  }
+  $("#siteBannerOn").classList.toggle("hidden", !st?.connected);
+  $("#siteBannerOff").classList.toggle("hidden", !!st?.connected);
+  $("#siteSettings").classList.toggle("hidden", !st?.connected);
+  $("#siteUsage").classList.toggle("hidden", !st?.connected || !base);
+  $("#siteSettings").href = base ? `${base}/extension/settings` : "https://editor.buildwithscram.com/branch/z07w3d61njwbx5lbgc5gzqk2/";
+  $("#siteUsage").href = base ? `${base}/usage` : "#";
+  showPage();
 }
-$("#managedEdit").addEventListener("click", () => {
-  managedUnlocked = true;
-  renderManaged();
-});
-window.addEventListener("hashchange", renderManaged);
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.bridge || changes.bridgeEnv) renderManaged();
-  // Changed on the site while this page is open: show the new values (unless you're editing here).
-  if (managedNow && (changes.settings || changes.apiKey || changes.promptOverrides)) load().then(() => typeof syncMirrors === "function" && syncMirrors());
+  if (changes.bridge || changes.bridgeEnv || changes.uiDevMode) renderLayout();
   if (changes.scramLessons) renderLessons();
 });
-renderManaged();
+renderLayout();

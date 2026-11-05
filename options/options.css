@@ -122,3 +122,7 @@ button.small { padding: 4px 10px; font-size: 12px; justify-self: start; }
 .managed .hint { display: block; margin-top: 2px; }
 .button-link { display: inline-block; padding: 6px 14px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; font-size: 13px; }
 .managed-lock input:disabled, .managed-lock select:disabled, .managed-lock textarea:disabled { opacity: .7; cursor: not-allowed; }
+
+.nav-group { margin: 14px 10px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+#siteBanner .hint { display: block; margin-top: 2px; }
+#siteUsage { font-weight: 600; font-size: 13px; }
