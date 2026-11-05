@@ -218,7 +218,8 @@
       document.execCommand("delete");
     };
     if (!text.includes("\n")) {
-      if (document.execCommand("insertText", false, text) && full()) return { ok: true };
+      // One line can't arrive "first line only": text in the box is enough (as before).
+      if (document.execCommand("insertText", false, text) && clean(el.innerText)) return { ok: true };
     } else {
       // Multi-line: never let a newline act as Enter (Enter sends the message). Try a paste first
       // (rich editors keep the line breaks), then line by line with a soft line break (what
@@ -242,6 +243,81 @@
     if (full()) return { ok: true, method: "paste" };
     // Something got in, but not all of it: report that (the caller attaches the text as a file).
     return { ok: false, partial: !!clean(el.innerText), got: clean(el.innerText).length, want: clean(text).length };
+  }
+
+  // Typing into the AI chat box, checked properly: rich editors (Lexical, ProseMirror…) may update
+  // the box a moment after the text goes in, and the box can hold other text too (an attached
+  // file's chip, a placeholder). So each method is given a moment, and success = the box CONTAINS
+  // the message (ignoring whitespace, quote and dash styles). Methods: the native value setter
+  // (textarea), insertText (one line), paste, line by line with soft line breaks (never Enter).
+  async function typeChat(target, text) {
+    const el = find(target);
+    if (!el) return { ok: false, error: "element not found" };
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const value = () => (el.tagName === "TEXTAREA" || el.tagName === "INPUT" ? el.value : el.innerText) || "";
+    const sq = (s) => String(s || "").normalize("NFKC").replace(/[‘’`´]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/…/g, "...").replace(/\s+/g, "").toLowerCase();
+    const want = sq(text);
+    const holds = () => {
+      const got = sq(value());
+      if (!want) return !got;
+      if (got.includes(want)) return true;
+      // Small tidy-ups by the editor: same start and end, about the same length.
+      const n = Math.min(30, Math.floor(want.length / 3));
+      return got.length >= want.length * 0.97 && got.includes(want.slice(0, n)) && got.includes(want.slice(-n));
+    };
+    const clear = async () => {
+      if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+        Object.getOwnPropertyDescriptor(el.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, "value").set.call(el, "");
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      } else {
+        el.focus();
+        getSelection().selectAllChildren(el);
+        document.execCommand("delete");
+      }
+      await wait(150);
+    };
+    const settled = async () => {
+      for (let i = 0; i < 6; i++) {
+        if (holds()) return true;
+        await wait(150);
+      }
+      return holds();
+    };
+    el.focus();
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      typeText(target, text);
+      return (await settled()) ? { ok: true, method: "value" } : { ok: false, got: sq(value()).length, want: want.length };
+    }
+    const multi = text.includes("\n");
+    const methods = {
+      insertText: () => {
+        getSelection().selectAllChildren(el);
+        document.execCommand("insertText", false, text);
+      },
+      paste: () => {
+        getSelection().selectAllChildren(el);
+        const dt = new DataTransfer();
+        dt.setData("text/plain", text);
+        el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+      },
+      lines: () => {
+        getSelection().selectAllChildren(el);
+        document.execCommand("delete");
+        text.split("\n").forEach((line, i) => {
+          if (i > 0 && !document.execCommand("insertLineBreak")) document.execCommand("insertHTML", false, "<br>");
+          if (line) document.execCommand("insertText", false, line);
+        });
+      },
+    };
+    // A newline must never go in through insertText (an editor may treat it as Enter = send).
+    const order = multi ? ["paste", "lines"] : ["insertText", "paste"];
+    for (const m of order) {
+      el.focus();
+      methods[m]();
+      if (await settled()) return { ok: true, method: m };
+      await clear();
+    }
+    return { ok: false, got: sq(value()).length, want: want.length, boxText: value().slice(0, 200) };
   }
 
   const KEYS = { Escape: 27, Enter: 13, Tab: 9, ArrowDown: 40, ArrowUp: 38 };
@@ -766,7 +842,7 @@
     if (p) {
       const lines = (p.innerText || "").split("\n").map((l) => l.trim()).filter(Boolean);
       // The bot's latest message ends in a question (ignore the chat box's own placeholder text).
-      const lastQ = lines.slice(-4).find((l) => /\?\s*$/.test(l) && l.length > 12 && !/^ask (claude|scram)/i.test(l));
+      const lastQ = lines.slice(-7).find((l) => /\?\s*$/.test(l) && l.length > 12 && !/^ask (claude|scram)/i.test(l));
       if (lastQ) return `the bot asked: “${lastQ.slice(0, 80)}”`;
     }
     return "";
@@ -1371,7 +1447,7 @@
     a11yTree, findRefs, refTarget, elementAt, focusedInfo, formInput, scrollToRef, viewport, setRefPrefix, settle,
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, chatHeaderInfo, newChatTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, chatText, chatReadable, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
+    findChatInput, findSendButton, inputValue, typeChat, isGenerating, chatText, chatReadable, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
     scrollChatToBottom: () => { const r = scrollChatToBottom(); return { ok: r.ok, moved: !!r.moved }; },
     ping: () => true,
   };
