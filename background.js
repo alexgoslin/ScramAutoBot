@@ -9,6 +9,7 @@ import * as scramExplorer from "./lib/scram-explorer.js";
 import * as categoryLib from "./lib/category.js";
 import * as bridge from "./lib/bridge.js";
 import * as bridgeReporter from "./lib/bridge-reporter.js";
+import { pauseChoice } from "./lib/steering.js";
 
 const SCRAM_URL = store.SCRAM_HOME;
 
@@ -41,6 +42,16 @@ async function migratePrompts() {
   await chrome.storage.local.set({ promptOverrides: {}, migrations: { ...migrations, promptsExact202611: true } });
 }
 migratePrompts().catch(console.error);
+
+// A lesson learned during a run blamed Scram's bot for RoboBuild's own bug (multi-line messages
+// arrived as their first line only — now fixed): forget it once.
+async function migrateLessons() {
+  const { migrations = {}, scramLessons = [] } = await chrome.storage.local.get(["migrations", "scramLessons"]);
+  if (migrations.lessonsFirstLine202611) return;
+  const kept = scramLessons.filter((l) => !/\bfirst line\b|only (the|its) first line|multi-?line/i.test(l?.text || ""));
+  await chrome.storage.local.set({ scramLessons: kept, migrations: { ...migrations, lessonsFirstLine202611: true } });
+}
+migrateLessons().catch(console.error);
 
 // A notification's quick-fix button ("I'm logged in", "Skip this site", "Done — continue"):
 // run it through the same handlers as everything else.
@@ -326,6 +337,7 @@ const handlers = {
   autopilotStop: () => autopilot.stop(),
   autopilotPause: () => autopilot.pause(),
   autopilotResume: () => autopilot.resume(),
+  autopilotPauseChoice: (msg) => pauseChoice(msg.choice),
   autopilotReset: () => autopilot.reset(),
   autopilotAnswer: ({ answers }) => autopilot.answerQuestions(answers),
   autopilotNote: ({ text }) => autopilot.addNote(text),

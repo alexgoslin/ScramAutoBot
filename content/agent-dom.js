@@ -206,11 +206,42 @@
       document.execCommand("delete");
       return { ok: true };
     }
-    if (document.execCommand("insertText", false, text) && clean(el.innerText)) return { ok: true };
+    // The whole text must end up in the box (compared ignoring whitespace) — never just a part.
+    // (Lengths within 3% and the same start: editors may tidy quotes or spaces.)
+    const full = () => {
+      const got = clean(el.innerText);
+      const want = clean(text);
+      return got === want || (got.length >= want.length * 0.97 && got.length <= want.length * 1.03 && got.slice(0, 20) === want.slice(0, 20));
+    };
+    const reset = () => {
+      sel.selectAllChildren(el);
+      document.execCommand("delete");
+    };
+    if (!text.includes("\n")) {
+      if (document.execCommand("insertText", false, text) && full()) return { ok: true };
+    } else {
+      // Multi-line: never let a newline act as Enter (Enter sends the message). Try a paste first
+      // (rich editors keep the line breaks), then line by line with a soft line break (what
+      // Shift+Enter does) between lines.
+      const dt = new DataTransfer();
+      dt.setData("text/plain", text);
+      el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+      if (full()) return { ok: true, method: "paste" };
+      reset();
+      const lines = text.split("\n");
+      lines.forEach((line, i) => {
+        if (i > 0 && !document.execCommand("insertLineBreak")) document.execCommand("insertHTML", false, "<br>");
+        if (line) document.execCommand("insertText", false, line);
+      });
+      if (full()) return { ok: true, method: "lines" };
+    }
+    reset();
     const dt = new DataTransfer();
     dt.setData("text/plain", text);
     el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
-    return { ok: !!clean(el.innerText) };
+    if (full()) return { ok: true, method: "paste" };
+    // Something got in, but not all of it: report that (the caller attaches the text as a file).
+    return { ok: false, partial: !!clean(el.innerText), got: clean(el.innerText).length, want: clean(text).length };
   }
 
   const KEYS = { Escape: 27, Enter: 13, Tab: 9, ArrowDown: 40, ArrowUp: 38 };
@@ -671,6 +702,55 @@
   function chatText() {
     const p = chatPanel();
     return p ? p.innerText : bodyText();
+  }
+
+  // The bot's collapsed "Thought" blocks and tool-step lists: elements marked as thinking /
+  // reasoning / tool calls, closed <details>, and the region a collapsed "Thought…" / "N steps"
+  // toggle controls. Their text is long and the human never sees it — the supervisor shouldn't either.
+  const THOUGHT_ATTR = /\b(thought|thinking|reasoning|reflection|tool[-_ ]?(call|use|step|result|invocation)s?|tool-?steps?|agent-?steps?)\b|(thought|thinking|reasoning|toolcall|tooluse|toolstep)/i;
+  const THOUGHT_LABEL = /^\W*(thought|thinking|reasoning|thought for\b|thought process|used \d+ tools?|\d+ (tool )?(steps?|tool calls?|actions?)|ran \d+ (tools?|steps?|commands?)|tool (calls?|steps?|use))/i;
+  function thoughtBlocks(root) {
+    const out = new Set();
+    const total = (root.innerText || "").length || 1;
+    for (const el of deepAll("*", root)) {
+      if (el === root || el.closest?.("textarea,[contenteditable=true]")) continue;
+      const attrs = `${typeof el.className === "string" ? el.className : el.getAttribute("class") || ""} ${el.getAttribute("data-testid") || ""} ${el.getAttribute("data-type") || ""} ${el.getAttribute("data-role") || ""} ${el.getAttribute("aria-label") || ""}`;
+      if (el.tagName === "DETAILS" && !el.open) out.add(el);
+      else if (THOUGHT_ATTR.test(attrs) && !el.querySelector("textarea,[contenteditable=true],input") && (el.innerText || "").length < total * 0.6) out.add(el);
+      else if ((el.matches("button,[role=button],summary") || el.getAttribute("aria-expanded") != null) && THOUGHT_LABEL.test(clean(el.innerText || "").slice(0, 60))) {
+        // The toggle and what it controls (aria-controls, else its next sibling).
+        out.add(el);
+        const ctl = el.getAttribute("aria-controls");
+        const region = (ctl && document.getElementById(ctl)) || el.nextElementSibling;
+        if (region) out.add(region);
+      }
+    }
+    // Keep only outermost blocks.
+    return [...out].filter((el) => ![...out].some((o) => o !== el && o.contains(el)));
+  }
+
+  // What the human sees of the chat: the visible messages without the Thought / tool-step blocks.
+  // Returns { text, hidden } — hidden = those blocks' lines (to drop them from page-text diffs too).
+  function chatReadable() {
+    const p = chatPanel();
+    const text = p ? p.innerText : bodyText();
+    if (!p) return { text, hidden: [] };
+    const hiddenLines = new Set();
+    for (const el of thoughtBlocks(p)) {
+      for (const l of (el.innerText || el.textContent || "").split("\n")) {
+        const t = l.trim();
+        if (t.length >= 12) hiddenLines.add(t); // short lines ("Done") could also be in a visible message
+      }
+    }
+    const visible = text
+      .split("\n")
+      .filter((l) => {
+        const t = l.trim();
+        return !hiddenLines.has(t) && !(t.length < 60 && THOUGHT_LABEL.test(t));
+      })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n");
+    return { text: visible, hidden: [...hiddenLines].slice(0, 5000) };
   }
 
   // Is Scram visibly waiting for the user? (plan approval, answer options, a question form)
@@ -1291,7 +1371,7 @@
     a11yTree, findRefs, refTarget, elementAt, focusedInfo, formInput, scrollToRef, viewport, setRefPrefix, settle,
     findText, modeToggle, closePanel, panelCloseTarget, projectNameTarget, typeActive, backTarget, frontendTab, chatPanelBox, chatExpandTarget, chatHeaderInfo, newChatTarget, isHeaderId: (id) => isHeaderControl(byId(id)),
     snapshot, describeTarget, click, typeText, pressKey, scroll, bodyText, signature, extract,
-    findChatInput, findSendButton, inputValue, isGenerating, chatText, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
+    findChatInput, findSendButton, inputValue, isGenerating, chatText, chatReadable, awaitingUser, attachFile, attachVia, scanChat, fileShown, composerState, centerOf, expandCollapsed, chatAtBottom, previewFrame, chatColumn,
     scrollChatToBottom: () => { const r = scrollChatToBottom(); return { ok: r.ok, moved: !!r.moved }; },
     ping: () => true,
   };

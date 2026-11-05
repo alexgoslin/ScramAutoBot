@@ -34,6 +34,6 @@ All of it goes into the theme, so the logged-in app (dashboards, tables, forms, 
 - It's clearly different from the default Scram look and from our other apps.
 - Typography hierarchy is dramatic and consistent, with no more than 3 font families.
 - All colours, fonts, radii and shadows come from theme tokens; nothing is hard-coded one-off.
-- Works at desktop size with no horizontal scroll, overlap or clipped text (this build targets desktop only).
+- Works at desktop, tablet and phone widths (1440 / 768 / 375px) with no horizontal scroll, overlap or clipped text.
 - AA contrast, visible focus states and reduced-motion support.
 - The logged-in screens look like the same brand as any public page.

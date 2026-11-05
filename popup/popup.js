@@ -104,8 +104,8 @@ const host = (u) => {
 
 // Quick fixes: small things (a login, Scram credits, a closed tab) can be done right here with
 // one button. Questions and choosing sites are only answered on the Control Center.
-async function act(type) {
-  const res = await chrome.runtime.sendMessage({ type });
+async function act(type, extra = {}) {
+  const res = await chrome.runtime.sendMessage({ type, ...extra });
   if (!res?.ok) throw new Error(res?.error || "Something went wrong.");
 }
 async function showTab(tabId) {
@@ -173,6 +173,9 @@ function needsYou(ap) {
   }
   if (ap.status === "paused" && /No Anthropic API key set/i.test(reason))
     return { key: "nokey", title: "🔑 Add your Anthropic API key", text: "The run is paused because no Anthropic API key is set. Add it in RoboBuild's settings on the RoboBuild site, then press Resume (here or on the site).", quick: [button("Add your API key", () => openKeySettings(), "primary"), button("Resume", () => act("autopilotResume"))] };
+  if (ap.status === "paused" && Array.isArray(ap.pauseOptions) && ap.pauseOptions.length) {
+    return { key: `pause:${reason}`, title: "Autopilot paused", text: reason || "It needs you before it can carry on.", quick: ap.pauseOptions.slice(0, 4).map((o) => button(o.label, () => act("autopilotPauseChoice", { choice: o.id }), o.recommended ? "primary" : undefined)) };
+  }
   if (ap.status === "paused" && !/paused by you/i.test(reason)) return { key: `pause:${reason}`, title: "Autopilot paused", text: reason || "It needs you before it can carry on.", quick: [button("Done — continue", () => act("autopilotResume"), "primary")] };
   if (ap.status === "error") return { key: `error:${reason}`, title: "⚠️ Something went wrong", text: reason || "The run stopped with an error.", quick: [button("Try again", () => act("autopilotResume"), "primary")], error: true };
   if (ap.status === "waiting") return { key: `wait:${ap.message}`, title: "⏳ Waiting for you", text: `${ap.message || ""} See the Control Center.`.trim() };
