@@ -41,7 +41,6 @@ async function migratePrompts() {
   if (migrations.promptsExact202611) return;
   await chrome.storage.local.set({ promptOverrides: {}, migrations: { ...migrations, promptsExact202611: true } });
 }
-migratePrompts().catch(console.error);
 
 // A lesson learned during a run blamed Scram's bot for RoboBuild's own bug (multi-line messages
 // arrived as their first line only — now fixed): forget it once.
@@ -51,7 +50,26 @@ async function migrateLessons() {
   const kept = scramLessons.filter((l) => !/\bfirst line\b|only (the|its) first line|multi-?line/i.test(l?.text || ""));
   await chrome.storage.local.set({ scramLessons: kept, migrations: { ...migrations, lessonsFirstLine202611: true } });
 }
-migrateLessons().catch(console.error);
+
+// The operator's default model changed from Claude Fable 5.1 to Claude Opus 5.5 (faster, cheaper,
+// fewer safety-check declines): move installs still on Fable over once. Choosing Fable again in
+// Settings afterwards sticks.
+async function migrateOperatorModel() {
+  const { migrations = {}, settings } = await chrome.storage.local.get(["migrations", "settings"]);
+  if (migrations.operatorOpus55202611) return;
+  if (settings?.operatorModel === "claude-fable-5-1") await chrome.storage.local.set({ settings: { ...settings, operatorModel: "claude-opus-5-5" } });
+  await chrome.storage.local.set({ migrations: { ...migrations, operatorOpus55202611: true } });
+}
+// One at a time: they share the "migrations" record, and each must see the others' flags.
+let migrated = null;
+function runMigrations() {
+  migrated ||= migratePrompts()
+    .then(migrateLessons)
+    .then(migrateOperatorModel)
+    .catch(console.error);
+  return migrated;
+}
+runMigrations();
 
 // A notification's quick-fix button ("I'm logged in", "Skip this site", "Done — continue"):
 // run it through the same handlers as everything else.
@@ -91,7 +109,7 @@ chrome.runtime.onInstalled.addListener(() => {
   applyActionMode();
   // Installed or updated (incl. reloading the unpacked extension): send the real settings to the
   // RoboBuild site at once, after the one-time prompt reset (no-op when not connected).
-  migratePrompts()
+  runMigrations()
     .catch(() => {})
     .then(() => bridgeReporter.reportSettingsNow())
     .catch(() => {});
