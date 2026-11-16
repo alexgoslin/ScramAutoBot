@@ -11,10 +11,10 @@ The default look is safe, generic and forgettable: white background, centred her
 
 Write the concept as one line ("CONCEPT: …") and make every later decision serve it and the vibe.
 
-## 2. Turn the concept into a system (as theme tokens)
+## 2. Turn the concept into a system (a Scram theme plus page styling rules)
 Choose deliberately; don't fall back to defaults.
 - **Palette:** a background that isn't plain #FFFFFF, an ink colour, and 1–3 accents used with conviction (big flat blocks, not timid tints). Dark, warm, saturated and muted palettes are all allowed if they fit. Text contrast must pass WCAG AA.
-- **Typography:** a display face with real character, paired with a readable body face. Optionally a third utility face (mono, condensed or serif) for labels. Dramatic size contrast between headlines and body. At most 3 families (Google Fonts, so Scram can load them).
+- **Typography:** a display face with real character, paired with a readable body face. Optionally a third utility face (mono, condensed or serif) for labels — the Scram theme holds only the heading and body fonts, so a third one goes in the page styling rules. Dramatic size contrast between headlines and body. At most 3 families (Google Fonts, so Scram can load them).
 - **Shape language:** ONE (sharp and square, soft and round, pill and glossy, hand-drawn, cut-paper, etc.), applied to buttons, inputs, cards, chips and images.
 - **Texture & depth:** what fits — flat colour, grain, hairline rules and grids, glass and blur, hard offset shadows, layered paper. No generic soft drop shadows everywhere.
 - **Signature element:** one memorable motif repeated across the app (a recurring shape, numbered section labels, a stamp, a ticker, a custom divider, an illustration style, a cursor effect).
@@ -33,7 +33,7 @@ All of it goes into the theme, so the logged-in app (dashboards, tables, forms, 
 - The concept line exists, it clearly expresses the chosen vibe, and someone could describe the look in 3 words.
 - It's clearly different from the default Scram look and from our other apps.
 - Typography hierarchy is dramatic and consistent, with no more than 3 font families.
-- All colours, fonts, radii and shadows come from theme tokens; nothing is hard-coded one-off.
+- All colours, fonts, radii and spacing come from the Scram theme; shadows, uppercase or letter-spaced headings and a third font come from the page styling rules, set once in the shared components; nothing is hard-coded one-off.
 - Works at desktop, tablet and phone widths (1440 / 768 / 375px) with no horizontal scroll, overlap or clipped text.
 - AA contrast, visible focus states and reduced-motion support.
 - The logged-in screens look like the same brand as any public page.

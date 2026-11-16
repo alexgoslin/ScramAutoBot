@@ -3,7 +3,7 @@
 This is about what **Scram's AI** builds with. The extension can't do any of it: it only drives the editor (Run mode, preview size, panels) and talks to Scram's AI. Use these facts to plan steps Scram can really build, to word requests in Scram's terms, and to recognise a genuine platform limit when Scram's AI reports one.
 
 ## How a Scram app is made
-- A **project** holds one or more **frontends** (once called "apps": web app, admin tool…). Frontends share the same database, file store, users, components and theme.
+- A **project** holds one or more **frontends** (once called "apps": web app, admin tool…). Frontends share the same database, file store, users and components. A project can hold several named **themes**, chosen per frontend.
 - **Pages** are built on the **Canvas** from **components**. Each component instance has Properties, Styles and Logic (events → workflows). Custom components can be built from other components. They have props, variables and events, and use **slots** (the Repeater has several).
 - **Workflows** are action sequences that run on events (click, submit, change, page load) or server side.
 - **Page data** loads when a page opens and can be reloaded with Reload Page Data. Data is **reactive**: expressions update when their inputs change.
@@ -11,7 +11,7 @@ This is about what **Scram's AI** builds with. The extension can't do any of it:
 - **Users and auth** are built in: email + password sign-up and login, social login (Google, Facebook, Microsoft, custom OAuth/OIDC), roles ("Registered User" and "Admin" to start; roles can't be deleted), page authorisation with fallback pages, and API tokens.
 - **File Store**: S3-backed storage for user uploads (Prepare File Upload / Upload File to URL / List Files). A file's `path` is its identity. **Project Files** hold the app's own static assets (logo, images).
 - **HTTP API**: outgoing calls to external services and incoming webhook endpoints.
-- **Theme**: a project-wide set of colours, fonts, spacing, corner radius and icon library.
+- **Theme**: a named set of colour roles (each a generated 50–950 scale, with optional pinned shades), two fonts, spacing / text size / roundness / border / size steps, an icon library and a colour scheme mode (light, dark or switchable). Shadows, uppercase headings and letter-spacing aren't part of a theme.
 - **Deployments**: Run uses a Dev build, and Publish creates a Live version that can be rolled back. **Server Logs** cover Dev only. Log Message actions write to them.
 
 ## Building blocks (names Scram uses)
